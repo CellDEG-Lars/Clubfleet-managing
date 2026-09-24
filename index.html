@@ -309,6 +309,14 @@
                     </h3>
                     <div id="participantsKidsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
                 </div>
+                <div>
+                    <h3 class="text-sm font-bold text-slate-200 uppercase tracking-wider mb-3 flex items-center justify-between border-b border-slate-700 pb-2">
+                        <span>Trainer im Event</span>
+                        <span id="selectedCoachesCountBadge" class="text-xs bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2.5 py-0.5 rounded-full font-bold">0 ausgewählt</span>
+                    </h3>
+                    <div id="participantsCoachesGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
+                </div>
+
 
                 <div>
                     <h3 class="text-sm font-bold text-slate-200 uppercase tracking-wider mb-3 flex items-center justify-between border-b border-slate-700 pb-2">
@@ -984,7 +992,7 @@
         const SHARED_KEYS = ['masterKids', 'masterTrailers', 'masterCars', 'masterRibs', 'masterCoaches', 'events'];
         let legacyMigrated = false;
         const syncState = { inFlight: false, dirty: false, needPull: false, version: 0, last: {} };
-        const EMPTY_EVENT = { id: '', name: 'Kein Event vorhanden', type: '', status: '', boatClass: '', location: '', startDate: '', endDate: '', coach: '', notes: '', participatingKidIds: [], participatingRibIds: [], ribCoaches: {}, trailerAssignments: {}, carAssignments: {}, checklist: [] };
+        const EMPTY_EVENT = { id: '', name: 'Kein Event vorhanden', type: '', status: '', boatClass: '', location: '', startDate: '', endDate: '', coach: '', notes: '', participatingKidIds: [], participatingRibIds: [], participatingCoachIds: [], ribCoaches: {}, trailerAssignments: {}, carAssignments: {}, checklist: [] };
         let alertTimer = null;
 
         function esc(v) {
@@ -1019,6 +1027,8 @@
             });
             out.events.forEach(ev => {
                 ev.ribCoaches = ev.ribCoaches || {};
+                // Migration: bisher zugewiesene Boots-Trainer gelten automatisch als Event-Trainer
+                ev.participatingCoachIds = ev.participatingCoachIds === undefined ? [...new Set(Object.values(ev.ribCoaches))] : toArr(ev.participatingCoachIds);
                 ev.participatingKidIds = toArr(ev.participatingKidIds);
                 ev.participatingRibIds = toArr(ev.participatingRibIds);
                 ev.trailerAssignments = ev.trailerAssignments || {};
@@ -1060,7 +1070,8 @@
             const coachIds = new Set(appData.masterCoaches.map(c => c.id));
             appData.events.forEach(ev => {
                 ev.ribCoaches = ev.ribCoaches || {};
-                Object.keys(ev.ribCoaches).forEach(rid => { if (!ribIds.has(rid) || !coachIds.has(ev.ribCoaches[rid])) delete ev.ribCoaches[rid]; });
+                ev.participatingCoachIds = (ev.participatingCoachIds || []).filter((id, i, a) => coachIds.has(id) && a.indexOf(id) === i);
+                Object.keys(ev.ribCoaches).forEach(rid => { if (!ribIds.has(rid) || !ev.participatingCoachIds.includes(ev.ribCoaches[rid])) delete ev.ribCoaches[rid]; });
                 ev.participatingKidIds = (ev.participatingKidIds || []).filter((id, i, a) => kidIds.has(id) && a.indexOf(id) === i);
                 ev.participatingRibIds = (ev.participatingRibIds || []).filter((id, i, a) => ribIds.has(id) && a.indexOf(id) === i);
                 const part = new Set(ev.participatingKidIds);
@@ -1359,7 +1370,7 @@
                 try { fn(); } catch (err) { console.error('Render-Fehler in ' + fn.name + ':', err); }
             });
             if (!isCoach()) {
-                document.querySelectorAll('#view-participants input[type=checkbox], #trailersGrid select, #carsGrid select, #ribsGrid select').forEach(el => { el.disabled = true; });
+                document.querySelectorAll('#view-participants input[type=checkbox], #view-participants select, #trailersGrid select, #carsGrid select, #ribsGrid select').forEach(el => { el.disabled = true; });
             }
         }
 
@@ -1581,6 +1592,7 @@
                 notes: document.getElementById('eventInputNotes').value,
                 participatingKidIds: existingEv ? (existingEv.participatingKidIds || []) : appData.masterKids.map(k=>k.id),
                 participatingRibIds: existingEv ? (existingEv.participatingRibIds || []) : appData.masterRibs.map(r=>r.id),
+                participatingCoachIds: existingEv ? (existingEv.participatingCoachIds || []) : [],
                 ribCoaches: existingEv ? (existingEv.ribCoaches || {}) : {},
                 trailerAssignments: existingEv ? (existingEv.trailerAssignments || {}) : {},
                 carAssignments: existingEv ? (existingEv.carAssignments || {}) : {},
@@ -1782,6 +1794,7 @@
         // 3. PARTICIPANTS SELECTOR
         function renderParticipantsSelector() {
             const ev = getActiveEvent();
+            renderParticipantCoaches(ev);
             const kidsContainer = document.getElementById('participantsKidsGrid');
             const ribsContainer = document.getElementById('participantsRibsGrid');
 
@@ -1810,17 +1823,59 @@
 
             appData.masterRibs.forEach(rib => {
                 const isChecked = selectedRibs.includes(rib.id);
-                const item = document.createElement('label');
-                item.className = `flex items-center gap-3 p-3 rounded-xl border cursor-pointer select-none transition ${isChecked ? 'bg-sky-950/40 border-sky-500/50 text-white' : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'}`;
+                const curCoach = (ev.ribCoaches || {})[rib.id] || '';
+                const coachOpts = '<option value="">— Trainer wählen —</option>' + appData.masterCoaches.map(c =>
+                    `<option value="${esc(c.id)}" ${c.id === curCoach ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
+                const coachPicker = !isChecked ? '' : (appData.masterCoaches.length
+                    ? `<select onchange="assignCoachToRib('${rib.id}', this.value)" class="w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white">${coachOpts}</select>`
+                    : '<div class="text-[10px] text-slate-400">Noch keine Trainer angelegt (Stammdaten → Trainer-Datenbank).</div>');
+                const item = document.createElement('div');
+                item.className = `p-3 rounded-xl border transition space-y-2 ${isChecked ? 'bg-sky-950/40 border-sky-500/50 text-white' : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'}`;
                 item.innerHTML = `
-                    <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleParticipantRib('${rib.id}')" class="w-4 h-4 text-sky-500 rounded border-slate-700 bg-slate-900 focus:ring-sky-500">
-                    <div class="text-xs">
-                        <div class="font-bold ${isChecked ? 'text-sky-300' : 'text-slate-300'}">${esc(rib.name)}</div>
-                        <div class="text-[10px] text-slate-400">${esc(rib.motor)}${ribCoachName(ev, rib.id) ? ' | Trainer: ' + esc(ribCoachName(ev, rib.id)) : ''}</div>
-                    </div>
+                    <label class="flex items-center gap-3 cursor-pointer select-none">
+                        <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleParticipantRib('${rib.id}')" class="w-4 h-4 text-sky-500 rounded border-slate-700 bg-slate-900 focus:ring-sky-500">
+                        <div class="text-xs">
+                            <div class="font-bold ${isChecked ? 'text-sky-300' : 'text-slate-300'}">${esc(rib.name)}</div>
+                            <div class="text-[10px] text-slate-400">${esc(rib.motor)}</div>
+                        </div>
+                    </label>
+                    ${coachPicker}
                 `;
                 ribsContainer.appendChild(item);
             });
+        }
+
+        function renderParticipantCoaches(ev) {
+            const box = document.getElementById('participantsCoachesGrid');
+            const sel = ev.participatingCoachIds || [];
+            document.getElementById('selectedCoachesCountBadge').textContent = `${sel.length} ausgewählt`;
+            if (!appData.masterCoaches.length) {
+                box.innerHTML = '<div class="col-span-full text-xs text-slate-400">Noch keine Trainer angelegt (Stammdaten → Trainer-Datenbank).</div>';
+                return;
+            }
+            box.innerHTML = appData.masterCoaches.map(c => {
+                const on = sel.includes(c.id);
+                const ribId = Object.keys(ev.ribCoaches || {}).find(rid => ev.ribCoaches[rid] === c.id);
+                const rib = ribId ? appData.masterRibs.find(r => r.id === ribId) : null;
+                const sub = rib ? 'Motorboot: ' + esc(rib.name) : (on ? 'noch kein Motorboot zugewiesen' : '&nbsp;');
+                return `
+                    <label class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer select-none transition ${on ? 'bg-amber-950/30 border-amber-500/50 text-white' : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-600'}">
+                        <input type="checkbox" ${on ? 'checked' : ''} onchange="toggleParticipantCoach('${c.id}')" class="w-4 h-4 rounded border-slate-700 bg-slate-900">
+                        <div class="text-xs">
+                            <div class="font-bold ${on ? 'text-amber-300' : 'text-slate-300'}">${esc(c.name)}</div>
+                            <div class="text-[10px] text-slate-400">${sub}</div>
+                        </div>
+                    </label>`;
+            }).join('');
+        }
+
+        function toggleParticipantCoach(coachId) {
+            if (!isCoach()) return;
+            const ev = getActiveEvent();
+            if (!ev.participatingCoachIds) ev.participatingCoachIds = [];
+            const idx = ev.participatingCoachIds.indexOf(coachId);
+            if (idx === -1) ev.participatingCoachIds.push(coachId); else ev.participatingCoachIds.splice(idx, 1);
+            saveData();   // entfernt bei Abwahl automatisch auch die Motorboot-Zuweisung
         }
 
         function toggleParticipantKid(kidId) {
@@ -2227,7 +2282,13 @@
             if (!isCoach()) return;
             const ev = getActiveEvent();
             if (!ev.ribCoaches) ev.ribCoaches = {};
-            if (coachId) ev.ribCoaches[ribId] = coachId; else delete ev.ribCoaches[ribId];
+            if (coachId) {
+                ev.ribCoaches[ribId] = coachId;
+                if (!ev.participatingCoachIds) ev.participatingCoachIds = [];
+                if (!ev.participatingCoachIds.includes(coachId)) ev.participatingCoachIds.push(coachId);
+            } else {
+                delete ev.ribCoaches[ribId];
+            }
             saveData();
         }
 
