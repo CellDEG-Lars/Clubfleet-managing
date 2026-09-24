@@ -1,0 +1,2421 @@
+<!DOCTYPE html>
+<html lang="de" class="h-full bg-slate-900">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClubFleet Pro - Multi-Klassen & Logistik Manager</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                            950: '#03192e',
+                        },
+                        ocean: {
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white !important; color: black !important; }
+            .print-card { border: 1px solid #ccc; page-break-inside: avoid; margin-bottom: 1rem; }
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col font-sans text-slate-100 bg-slate-900 antialiased selection:bg-ocean-500 selection:text-white">
+
+    <!-- TOP NAVIGATION BAR -->
+    <header class="bg-navy-950 border-b border-slate-800 sticky top-0 z-50 no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo & Title -->
+                <div class="flex items-center space-x-3">
+                    <div class="p-2 bg-gradient-to-tr from-ocean-600 to-cyan-400 text-white rounded-xl shadow-lg shadow-ocean-500/20">
+                        <i class="fa-solid fa-anchor text-xl sm:text-2xl"></i>
+                    </div>
+                    <div>
+                        <span class="font-extrabold text-lg sm:text-xl tracking-tight block leading-none bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">ClubFleet <span class="text-ocean-400 font-black">PRO</span></span>
+                        <span class="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Multi-Klassen Club & Logistik Manager</span>
+                    </div>
+                </div>
+
+                <!-- Event Quick Selector Dropdown -->
+                <div class="flex items-center bg-slate-800/90 px-3 py-1.5 rounded-xl border border-slate-700/80 space-x-2">
+                    <i class="fa-solid fa-trophy text-amber-400 text-xs sm:text-sm"></i>
+                    <select id="activeEventSelect" onchange="switchActiveEvent(this.value)" class="bg-transparent text-xs sm:text-sm font-semibold text-slate-100 outline-none cursor-pointer max-w-[180px] sm:max-w-[260px] truncate">
+                        <!-- Populated dynamically -->
+                    </select>
+                </div>
+
+                <!-- Role Switcher & Global Action Buttons -->
+                <div class="flex items-center space-x-2">
+                    <!-- RECHTEMANAGEMENT: ROLLEN WECHSLER -->
+                    <div class="flex items-center bg-slate-900 border border-slate-700 p-1 rounded-xl">
+                        <span class="text-[10px] uppercase font-bold text-slate-400 px-2 hidden lg:inline">Rolle:</span>
+                        <button id="roleBtnCoach" onclick="requestCoachRole()" class="px-2.5 py-1 text-xs font-bold rounded-lg transition flex items-center gap-1">
+                            <i class="fa-solid fa-user-shield text-amber-400"></i> Trainer
+                        </button>
+                        <button id="roleBtnParent" onclick="setUserRole('parent')" class="px-2.5 py-1 text-xs font-bold rounded-lg transition flex items-center gap-1">
+                            <i class="fa-solid fa-users text-emerald-400"></i> Eltern
+                        </button>
+                    </div>
+
+                    <span id="syncBadge" class="hidden sm:inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-bold border border-slate-700 text-slate-400"></span>
+                    <button onclick="exportSeasonICS()" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl border border-slate-700 transition text-xs font-medium flex items-center gap-1.5" title="Saison-Kalender herunterladen (.ics)">
+                        <i class="fa-solid fa-calendar-plus text-ocean-400"></i>
+                        <span class="hidden md:inline">Saison .ics</span>
+                    </button>
+                    <button onclick="window.print()" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl border border-slate-700 transition text-xs font-medium flex items-center gap-1.5">
+                        <i class="fa-solid fa-print"></i>
+                        <span class="hidden sm:inline">Drucken</span>
+                    </button>
+                    <button onclick="resetDataConfirmation()" class="admin-only p-2 bg-rose-950/50 hover:bg-rose-900 border border-rose-800/60 text-rose-300 rounded-xl transition text-xs font-medium" title="Saisonbeispiele wiederherstellen">
+                        <i class="fa-solid fa-rotate-left"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN TABS NAVIGATION -->
+        <div class="bg-slate-950/80 border-t border-slate-800/80 backdrop-blur-md">
+            <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
+                <nav class="flex space-x-1 sm:space-x-2 overflow-x-auto no-scrollbar py-2 text-xs sm:text-sm">
+                    <button onclick="switchTab('calendar')" id="tab-calendar" class="tab-btn px-3 py-2 rounded-xl font-medium transition flex items-center gap-2 whitespace-nowrap bg-ocean-600 text-white shadow">
+                        <i class="fa-solid fa-calendar-days text-amber-400"></i> Regatta-Kalender
+                    </button>
+                    <button onclick="switchTab('overview')" id="tab-overview" class="tab-btn px-3 py-2 rounded-xl font-medium transition flex items-center gap-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/60">
+                        <i class="fa-solid fa-chart-pie"></i> Event-Cockpit
+                    </button>
+                    <button onclick="switchTab('participants')" id="tab-participants" class="tab-btn px-3 py-2 rounded-xl font-medium transition flex items-center gap-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/60">
+                        <i class="fa-solid fa-users text-emerald-400"></i> Team & Meldeliste
+                    </button>
+                    <button onclick="switchTab('logistics')" id="tab-logistics" class="tab-btn px-3 py-2 rounded-xl font-medium transition flex items-center gap-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/60">
+                        <i class="fa-solid fa-trailer text-amber-400"></i> Hänger, Boote & Autos
+                    </button>
+                    <button onclick="switchTab('ribs')" id="tab-ribs" class="tab-btn px-3 py-2 rounded-xl font-medium transition flex items-center gap-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/60">
+                        <i class="fa-solid fa-ship text-sky-400"></i> Coach-RIBs & Sprit
+                    </button>
+                    <button onclick="switchTab('checklist')" id="tab-checklist" class="tab-btn px-3 py-2 rounded-xl font-medium transition flex items-center gap-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/60">
+                        <i class="fa-solid fa-list-check text-purple-400"></i> Tech & Packliste
+                    </button>
+                    <button onclick="switchTab('masterdata')" id="tab-masterdata" class="admin-only tab-btn px-3 py-2 rounded-xl font-medium transition flex items-center gap-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/60 ml-auto border-l border-slate-800 pl-3">
+                        <i class="fa-solid fa-database text-cyan-400"></i> Vereinskader & Flotte
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+        <!-- PARENT ROLE BANNER -->
+        <div id="parentNoticeBanner" class="hidden mb-6 p-4 rounded-2xl border border-emerald-500/30 bg-emerald-950/40 text-emerald-200 shadow-lg flex items-center justify-between no-print">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-user-check text-emerald-400 text-xl"></i>
+                <div class="text-xs">
+                    <span class="font-bold text-white text-sm block">Eltern-Modus aktiv</span>
+                    Du hast Lesezugriff auf alle Event- & Fahrtenpläne. Du kannst dein eigenes Auto als Mitfahrgelegenheit eintragen oder verwalten.
+                </div>
+            </div>
+            <button onclick="openCarModal()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow flex items-center gap-1.5">
+                <i class="fa-solid fa-car-side"></i> Mein Auto eintragen
+            </button>
+        </div>
+
+        <!-- GLOBAL ALERT SYSTEM -->
+        <div id="alertContainer" class="hidden mb-6 p-4 rounded-2xl border shadow-lg flex items-center justify-between no-print transition-all">
+            <div class="flex items-center gap-3">
+                <i id="alertIcon" class="fa-solid text-xl"></i>
+                <span id="alertMessage" class="text-sm font-medium"></span>
+            </div>
+            <button onclick="closeAlert()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <!-- TAB 1: SAISONKALENDER & EVENTS -->
+        <div id="view-calendar" class="tab-content space-y-6">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-800/50 p-5 rounded-2xl border border-slate-700/60 shadow-xl backdrop-blur-md">
+                <div>
+                    <h1 class="text-2xl font-extrabold text-white flex items-center gap-2.5">
+                        <i class="fa-solid fa-calendar-days text-ocean-400"></i> Regatta- & Trainingskalender 2026
+                    </h1>
+                    <p class="text-xs text-slate-400 mt-1">Multi-Klassen Terminplanung für Opti A, Opti B, 420er, ILCA, 29er & 49er</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="flex items-center gap-2 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-700">
+                        <i class="fa-solid fa-filter text-slate-400 text-xs"></i>
+                        <span class="text-xs font-semibold text-slate-300 hidden sm:inline">Klasse:</span>
+                        <select id="calendarClassFilter" onchange="onClassFilterChange(this.value)" class="bg-transparent text-xs font-semibold text-ocean-400 outline-none cursor-pointer">
+                            <option value="ALL">Alle Bootsklassen</option>
+                            <option value="Opti A">Optimist A</option>
+                            <option value="Opti B">Optimist B</option>
+                            <option value="420">420er</option>
+                            <option value="ILCA">ILCA (Laser)</option>
+                            <option value="29er">29er</option>
+                            <option value="49er">49er / FX</option>
+                            <option value="Sonstige">Sonstige</option>
+                        </select>
+                    </div>
+
+                    <div class="bg-slate-900 p-1 rounded-xl flex text-xs font-semibold border border-slate-700">
+                        <button id="btnViewCalendar" onclick="setCalendarMode('month')" class="px-3 py-1.5 rounded-lg bg-ocean-600 text-white shadow">Monat</button>
+                        <button id="btnViewList" onclick="setCalendarMode('list')" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white">Liste</button>
+                    </div>
+                    <button onclick="openEventModal()" class="admin-only bg-ocean-600 hover:bg-ocean-500 text-white font-semibold px-4 py-2 rounded-xl text-sm shadow-lg shadow-ocean-600/30 transition flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> Neues Event
+                    </button>
+                </div>
+            </div>
+
+            <div id="calendarMonthContainer" class="bg-slate-800/40 p-6 rounded-2xl border border-slate-700/60 shadow-xl backdrop-blur-md">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 id="calendarMonthTitle" class="text-lg font-bold text-white">Oktober 2026</h2>
+                    <div class="flex items-center gap-2">
+                        <button onclick="prevMonth()" class="p-2 border border-slate-700 rounded-xl hover:bg-slate-700/60 text-slate-300"><i class="fa-solid fa-chevron-left"></i></button>
+                        <button onclick="currentMonth()" class="px-3 py-1 border border-slate-700 rounded-xl hover:bg-slate-700/60 text-xs font-semibold text-slate-300">Heute</button>
+                        <button onclick="nextMonth()" class="p-2 border border-slate-700 rounded-xl hover:bg-slate-700/60 text-slate-300"><i class="fa-solid fa-chevron-right"></i></button>
+                    </div>
+                </div>
+                <div class="grid grid-cols-7 gap-1 text-center font-semibold text-xs text-slate-400 mb-2 uppercase tracking-wider">
+                    <div>Mo</div><div>Di</div><div>Mi</div><div>Do</div><div>Fr</div><div>Sa</div><div>So</div>
+                </div>
+                <div id="calendarGrid" class="grid grid-cols-7 gap-1.5"></div>
+            </div>
+
+            <div id="calendarListContainer" class="hidden space-y-4">
+                <div id="eventListGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            </div>
+        </div>
+
+        <!-- TAB 2: EVENT COCKPIT / OVERVIEW -->
+        <div id="view-overview" class="tab-content hidden space-y-6">
+            <div class="bg-gradient-to-r from-navy-950 via-slate-900 to-ocean-900 rounded-3xl p-6 border border-slate-700/80 shadow-2xl relative overflow-hidden">
+                <div class="absolute -right-10 -bottom-10 opacity-10 text-9xl text-ocean-400">
+                    <i class="fa-solid fa-trophy"></i>
+                </div>
+                <div class="relative z-10 flex flex-col md:flex-row justify-between md:items-center gap-4">
+                    <div>
+                        <div class="flex flex-wrap items-center gap-2 mb-2">
+                            <span id="dashTypeBadge" class="inline-block px-3 py-0.5 bg-ocean-500/20 backdrop-blur-md rounded-full text-xs font-semibold text-ocean-300 border border-ocean-400/30">Regatta</span>
+                            <span id="dashStatusBadge" class="inline-block px-3 py-0.5 bg-emerald-500/20 backdrop-blur-md rounded-full text-xs font-semibold text-emerald-300 border border-emerald-400/30">Bestätigt</span>
+                        </div>
+                        <h1 id="dashTitle" class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Kieler Woche 2026</h1>
+                        <p id="dashDates" class="text-slate-300 text-sm mt-1">20.06.2026 - 28.06.2026 | Ort: <span id="dashLocation">Kiel-Schilksee</span></p>
+                    </div>
+                    <div class="flex flex-wrap gap-2 sm:gap-3">
+                        <button onclick="exportSingleEventICS()" class="bg-slate-800/80 hover:bg-slate-700/80 backdrop-blur-md px-3.5 py-2 rounded-xl border border-slate-600/60 text-xs font-semibold text-slate-200 flex items-center gap-2 transition">
+                            <i class="fa-solid fa-file-export text-amber-400"></i> Event .ics
+                        </button>
+                        <button onclick="openEventModal(appData.activeEventId)" class="admin-only bg-slate-800/80 hover:bg-slate-700/80 backdrop-blur-md px-3.5 py-2 rounded-xl border border-slate-600/60 text-xs font-semibold text-slate-200 flex items-center gap-2 transition">
+                            <i class="fa-solid fa-pen-to-square"></i> Bearbeiten
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-slate-800/50 p-5 rounded-2xl border border-slate-700/60 shadow-xl backdrop-blur-md flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-bold text-white flex items-center gap-2"><i class="fa-solid fa-trailer text-amber-400"></i> Hänger & Boote</h3>
+                            <span id="dashTrailerStatusBadge" class="text-xs px-2.5 py-1 rounded-full font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">0/0 geladen</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mb-3">Status der Bootssortierung auf Hängern & Dachträgern.</p>
+                        <div class="w-full bg-slate-900 h-3 rounded-full overflow-hidden border border-slate-700">
+                            <div id="dashTrailerBar" class="bg-amber-500 h-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <button onclick="switchTab('logistics')" class="mt-4 text-xs font-semibold text-ocean-400 hover:text-ocean-300 flex items-center gap-1">Zur Logistikplanung <i class="fa-solid fa-arrow-right"></i></button>
+                </div>
+
+                <div class="bg-slate-800/50 p-5 rounded-2xl border border-slate-700/60 shadow-xl backdrop-blur-md flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-bold text-white flex items-center gap-2"><i class="fa-solid fa-car text-blue-400"></i> Personentransport</h3>
+                            <span id="dashSeatsStatusBadge" class="text-xs px-2.5 py-1 rounded-full font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/30">0/0 untergebracht</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mb-3">Verteilung von Seglern, Trainern & Betreuern auf Autos.</p>
+                        <div class="w-full bg-slate-900 h-3 rounded-full overflow-hidden border border-slate-700">
+                            <div id="dashSeatsBar" class="bg-blue-500 h-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <button onclick="switchTab('logistics')" class="mt-4 text-xs font-semibold text-ocean-400 hover:text-ocean-300 flex items-center gap-1">Zur Fahrtenplanung <i class="fa-solid fa-arrow-right"></i></button>
+                </div>
+
+                <div class="bg-slate-800/50 p-5 rounded-2xl border border-slate-700/60 shadow-xl backdrop-blur-md flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-bold text-white flex items-center gap-2"><i class="fa-solid fa-clipboard-check text-purple-400"></i> Packliste & Tech-Check</h3>
+                            <span id="dashChecklistBadge" class="text-xs px-2.5 py-1 rounded-full font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30">0% bereit</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mb-3">Ausrüstungs-, Werkzeug- & Funkgeräte-Sicherheitscheck.</p>
+                        <div class="w-full bg-slate-900 h-3 rounded-full overflow-hidden border border-slate-700">
+                            <div id="dashChecklistBar" class="bg-purple-500 h-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <button onclick="switchTab('checklist')" class="mt-4 text-xs font-semibold text-ocean-400 hover:text-ocean-300 flex items-center gap-1">Zur Packliste <i class="fa-solid fa-arrow-right"></i></button>
+                </div>
+            </div>
+
+            <div class="bg-slate-800/50 rounded-2xl border border-slate-700/60 shadow-xl p-6 backdrop-blur-md">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-bold text-white flex items-center gap-2"><i class="fa-solid fa-list-ol text-ocean-400"></i> Multi-Klassen Event-Fahrtenübersicht</h2>
+                    <span class="text-xs text-slate-400">Kompaktübersicht für Trainer, Eltern & Fahrer</span>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="summaryViewContainer"></div>
+            </div>
+        </div>
+
+        <!-- TAB 3: EVENT TEILNEHMER & BOOTE SELEKTOR -->
+        <div id="view-participants" class="tab-content hidden space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-800/50 p-5 rounded-2xl border border-slate-700/60 shadow-xl backdrop-blur-md">
+                <div>
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2"><i class="fa-solid fa-users text-emerald-400"></i> Event Meldeliste & Einsatzplanung</h2>
+                    <p class="text-xs text-slate-400">Übersicht der gemeldeten Segler, Boote und Begleit-RIBs für dieses Event.</p>
+                </div>
+                <button onclick="switchTab('masterdata')" class="admin-only text-xs font-semibold text-ocean-400 hover:text-ocean-300 underline flex items-center gap-1">
+                    <i class="fa-solid fa-database"></i> Stammkader & Flotte verwalten
+                </button>
+            </div>
+
+            <div class="bg-slate-800/40 rounded-2xl border border-slate-700/60 shadow-xl p-6 space-y-6 backdrop-blur-md">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-200 uppercase tracking-wider mb-3 flex items-center justify-between border-b border-slate-700 pb-2">
+                        <span>Gemeldete Segler & Vereinsboote</span>
+                        <span id="selectedKidsCountBadge" class="text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-0.5 rounded-full font-bold">0 ausgewählt</span>
+                    </h3>
+                    <div id="participantsKidsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
+                </div>
+
+                <div>
+                    <h3 class="text-sm font-bold text-slate-200 uppercase tracking-wider mb-3 flex items-center justify-between border-b border-slate-700 pb-2">
+                        <span>Begleitmotorboote (RIBs)</span>
+                        <span id="selectedRibsCountBadge" class="text-xs bg-sky-500/20 text-sky-300 border border-sky-500/30 px-2.5 py-0.5 rounded-full font-bold">0 ausgewählt</span>
+                    </h3>
+                    <div id="participantsRibsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: HÄNGER, BOOTE & LOGISTIK -->
+        <div id="view-logistics" class="tab-content hidden space-y-8">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-xl font-bold text-white">Event Hänger-, Boots- & Fahrtenplanung</h2>
+                    <p class="text-xs text-slate-400">Klassen-Hänger beladen, Dachträger nutzen & Zugfahrzeuge zuweisen</p>
+                </div>
+            </div>
+
+            <div class="bg-slate-900/80 p-4 rounded-2xl border border-slate-700 shadow-xl">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-box-open text-amber-400"></i> Noch nicht zugeordnete Ressourcen für dieses Event
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700 shadow-sm">
+                        <span class="text-xs font-semibold text-slate-300 block mb-2">Unplatzierte Boote (<span id="unassignedOptisCount">0</span>):</span>
+                        <div id="unassignedOptisList" class="flex flex-wrap gap-2 min-h-[36px] items-center"></div>
+                    </div>
+                    <div class="bg-slate-800/80 p-3 rounded-xl border border-slate-700 shadow-sm">
+                        <span class="text-xs font-semibold text-slate-300 block mb-2">Unplatzierte Personen (<span id="unassignedKidsCount">0</span>):</span>
+                        <div id="unassignedKidsList" class="flex flex-wrap gap-2 min-h-[36px] items-center"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-trailer text-amber-400"></i> Hänger & Dachträger Belegung
+                </h3>
+                <div id="trailersGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            </div>
+
+            <div class="space-y-4 pt-4 border-t border-slate-800">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-car text-blue-400"></i> Zugfahrzeuge, Anhängelast & Mitfahrgelegenheiten
+                    </h3>
+                    <button onclick="openCarModal()" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-3 py-1.5 rounded-xl text-xs shadow transition flex items-center gap-1">
+                        <i class="fa-solid fa-plus"></i> Auto eintragen
+                    </button>
+                </div>
+                <div id="carsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            </div>
+        </div>
+
+        <!-- TAB 5: MOTORBOOTE & COACH-RIBS -->
+        <div id="view-ribs" class="tab-content hidden space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-xl font-bold text-white">Begleitmotorboote (RIBs) & Wasser-Logistik</h2>
+                    <p class="text-xs text-slate-400">Sicherheitsboote, Funk, Treibstoff & Transport-Trailer</p>
+                </div>
+            </div>
+            <div id="ribsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </div>
+
+        <!-- TAB 6: CHECKLISTE & TECH-INSPEKTION -->
+        <div id="view-checklist" class="tab-content hidden space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-xl font-bold text-white">Event-Packliste & Tech-Check</h2>
+                    <p class="text-xs text-slate-400">Ausrüstung, Werkzeuge, Ersatzteile & Sicherheits-Inspektion</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="openChecklistItemModal()" class="admin-only bg-purple-600 hover:bg-purple-500 text-white font-semibold px-3 py-1.5 rounded-xl text-xs shadow-lg transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-plus"></i> Position hinzufügen
+                    </button>
+                    <button onclick="resetChecklist()" class="admin-only text-slate-400 hover:text-white text-xs font-semibold underline">
+                        Zurücksetzen
+                    </button>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="checklistCategoryContainer"></div>
+        </div>
+
+        <!-- TAB 7: STAMMDATEN & FLOTTE (GLOBAL - ADMIN) -->
+        <div id="view-masterdata" class="tab-content hidden space-y-8">
+            <div class="bg-gradient-to-r from-slate-800 to-navy-900 border border-slate-700/80 p-5 rounded-2xl flex items-center justify-between shadow-xl">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-database text-cyan-400 text-2xl"></i>
+                    <div>
+                        <h3 class="font-bold text-white text-sm">Zentrales Vereins- & Kader-Register</h3>
+                        <p class="text-xs text-slate-400">Verwalte Segler, Bootsklassen, Hänger, Autos und RIBs für die gesamte Vereinsarbeit.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-slate-800/40 p-6 rounded-2xl border border-slate-700/60 shadow-xl space-y-4 backdrop-blur-md">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-bold text-white text-lg flex items-center gap-2">
+                        <i class="fa-solid fa-user-gear text-amber-400"></i> Stammkader Segler/innen & Crews
+                    </h3>
+                    <button onclick="openKidModal()" class="bg-ocean-600 hover:bg-ocean-500 text-white font-semibold px-3.5 py-1.5 rounded-xl text-xs shadow transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-plus"></i> Segler Anlegen
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-slate-300">
+                        <thead class="bg-slate-900/80 text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-700">
+                            <tr>
+                                <th class="px-4 py-3">Name</th>
+                                <th class="px-4 py-3">Bootsklasse</th>
+                                <th class="px-4 py-3">Rolle</th>
+                                <th class="px-4 py-3">Segelnummer</th>
+                                <th class="px-4 py-3">Eigentum</th>
+                                <th class="px-4 py-3">Telefon / Notfall</th>
+                                <th class="px-4 py-3">E-Mail</th>
+                                <th class="px-4 py-3 text-right">Aktionen</th>
+                            </tr>
+                        </thead>
+                        <tbody id="masterKidsTable" class="divide-y divide-slate-700/50"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-slate-800/40 p-6 rounded-2xl border border-slate-700/60 shadow-xl space-y-4 backdrop-blur-md">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold text-white text-base flex items-center gap-2">
+                            <i class="fa-solid fa-trailer text-amber-400"></i> Stamm-Hänger & Dachträger
+                        </h3>
+                        <button onclick="openTrailerModal()" class="bg-amber-600 hover:bg-amber-500 text-white font-semibold px-3 py-1.5 rounded-xl text-xs shadow transition flex items-center gap-1">
+                            <i class="fa-solid fa-plus"></i> Hänger Anlegen
+                        </button>
+                    </div>
+                    <div id="masterTrailersList" class="space-y-2"></div>
+                </div>
+
+                <div class="bg-slate-800/40 p-6 rounded-2xl border border-slate-700/60 shadow-xl space-y-4 backdrop-blur-md">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold text-white text-base flex items-center gap-2">
+                            <i class="fa-solid fa-car text-blue-400"></i> Zugfahrzeuge
+                        </h3>
+                        <button onclick="openCarModal()" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-3 py-1.5 rounded-xl text-xs shadow transition flex items-center gap-1">
+                            <i class="fa-solid fa-plus"></i> Auto Anlegen
+                        </button>
+                    </div>
+                    <div id="masterCarsList" class="space-y-2"></div>
+                </div>
+            </div>
+
+            <div class="bg-slate-800/40 p-6 rounded-2xl border border-slate-700/60 shadow-xl space-y-4 backdrop-blur-md">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-bold text-white text-base flex items-center gap-2">
+                        <i class="fa-solid fa-ship text-sky-400"></i> Stamm-Begleitmotorboote (RIBs)
+                    </h3>
+                    <button onclick="openRibModal()" class="bg-sky-600 hover:bg-sky-500 text-white font-semibold px-3 py-1.5 rounded-xl text-xs shadow transition flex items-center gap-1">
+                        <i class="fa-solid fa-plus"></i> Motorboot Anlegen
+                    </button>
+                </div>
+                <div id="masterRibsList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODALS SECTION -->
+
+    <!-- COACH AUTH MODAL -->
+    <div id="coachAuthModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-800 rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-700 text-slate-100">
+            <div class="text-center mb-4">
+                <div class="w-12 h-12 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-2xl flex items-center justify-center mx-auto mb-3 text-xl">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white">Trainer-Bereich geschützt</h3>
+                <p class="text-xs text-slate-400 mt-1">Bitte gib das Trainer-Passwort ein, um administrative Rechte zu freizuschalten.</p>
+            </div>
+            <form onsubmit="verifyCoachPassword(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Passwort</label>
+                    <input type="password" id="coachPasswordInput" required placeholder="Passwort eingeben" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white outline-none focus:ring-2 focus:ring-amber-500">
+                    <p id="coachAuthError" class="text-rose-400 text-xs mt-1.5 hidden flex items-center gap-1">
+                        <i class="fa-solid fa-circle-exclamation"></i> Passwort ist falsch.
+                    </p>
+                </div>
+                <div class="flex gap-2">
+                    <button type="button" onclick="closeCoachAuthModal()" class="w-1/2 py-2 text-sm text-slate-400 hover:bg-slate-700 rounded-xl font-medium">Abbrechen</button>
+                    <button type="submit" class="w-1/2 py-2 text-sm bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl shadow">Freischalten</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- EVENT MODAL -->
+    <div id="eventModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-700 text-slate-100">
+            <h3 id="eventModalTitle" class="text-lg font-bold text-white mb-4">Neues Event im Saisonkalender</h3>
+            <form id="eventForm" onsubmit="saveEvent(event)" class="space-y-3">
+                <input type="hidden" id="eventId">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Event-Name *</label>
+                    <input type="text" id="eventInputName" required placeholder="z.B. Kieler Woche 2026" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white outline-none focus:ring-2 focus:ring-ocean-500">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Typ *</label>
+                        <select id="eventInputType" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white outline-none focus:ring-2 focus:ring-ocean-500">
+                            <option value="Regatta">Regatta</option>
+                            <option value="Trainingslager">Trainingslager</option>
+                            <option value="Heimtraining">Heimtraining</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Status *</label>
+                        <select id="eventInputStatus" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white outline-none focus:ring-2 focus:ring-ocean-500">
+                            <option value="Bestätigt">Bestätigt</option>
+                            <option value="In Planung">In Planung</option>
+                            <option value="Abgeschlossen">Abgeschlossen</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Bootsklasse *</label>
+                    <select id="eventInputBoatClass" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white outline-none focus:ring-2 focus:ring-ocean-500 font-semibold">
+                        <option value="Alle Classes">Alle Bootsklassen (Multi-Class)</option>
+                        <option value="Opti A">Optimist A</option>
+                        <option value="Opti B">Optimist B</option>
+                        <option value="420">420er</option>
+                        <option value="ILCA">ILCA (Laser)</option>
+                        <option value="29er">29er</option>
+                        <option value="49er">49er / FX</option>
+                        <option value="Sonstige">Sonstige Klasse</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Veranstaltungsort *</label>
+                    <input type="text" id="eventInputLocation" required placeholder="z.B. Kiel-Schilksee" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white outline-none focus:ring-2 focus:ring-ocean-500">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Startdatum *</label>
+                        <input type="date" id="eventInputStartDate" required class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white outline-none focus:ring-2 focus:ring-ocean-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Enddatum *</label>
+                        <input type="date" id="eventInputEndDate" required class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white outline-none focus:ring-2 focus:ring-ocean-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Verantwortlicher Trainer</label>
+                    <input type="text" id="eventInputCoach" placeholder="Name des Trainers" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white outline-none focus:ring-2 focus:ring-ocean-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Treffpunkt & Notizen</label>
+                    <textarea id="eventInputNotes" rows="2" placeholder="Treffpunkt, Kranzeiten, Ausrüstung..." class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white outline-none focus:ring-2 focus:ring-ocean-500"></textarea>
+                </div>
+                <div class="flex justify-between items-center pt-3 border-t border-slate-700">
+                    <button type="button" id="btnDeleteEvent" onclick="deleteCurrentModalEvent()" class="text-xs text-rose-400 hover:underline hidden">Event löschen</button>
+                    <div class="flex gap-2 ml-auto">
+                        <button type="button" onclick="closeEventModal()" class="px-4 py-2 text-sm text-slate-400 hover:bg-slate-700 rounded-xl">Abbrechen</button>
+                        <button type="submit" class="px-4 py-2 text-sm bg-ocean-600 hover:bg-ocean-500 text-white rounded-xl font-semibold shadow">Speichern</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- SEILER / CREW MODAL -->
+    <div id="kidModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-700 text-slate-100">
+            <h3 id="kidModalTitle" class="text-lg font-bold text-white mb-4">Segler/in im Stammkader anlegen</h3>
+            <form id="kidForm" onsubmit="saveKid(event)" class="space-y-3">
+                <input type="hidden" id="kidId">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Vorname *</label>
+                        <input type="text" id="kidFirstName" required class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Nachname *</label>
+                        <input type="text" id="kidLastName" required class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Bootsklasse *</label>
+                        <select id="kidGroup" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white font-semibold">
+                            <option value="Opti A">Optimist A</option>
+                            <option value="Opti B">Optimist B</option>
+                            <option value="420">420er</option>
+                            <option value="ILCA">ILCA (Laser)</option>
+                            <option value="29er">29er</option>
+                            <option value="49er">49er / FX</option>
+                            <option value="Sonstige">Sonstige Klasse</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Rolle im Boot</label>
+                        <select id="kidRole" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                            <option value="Einzelsegler">Einzelsegler / Steuermann</option>
+                            <option value="Steuermann">Steuermann (2p)</option>
+                            <option value="Vorschoter">Vorschoter (2p)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Segelnummer *</label>
+                        <input type="text" id="kidSailNum" placeholder="GER 1234" required class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Eigentum</label>
+                        <select id="kidBoatType" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                            <option value="Eigenes Boot">Eigenes Boot</option>
+                            <option value="Vereinsboot">Vereinsboot</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Notfallkontakt / Eltern Telefon</label>
+                    <input type="text" id="kidPhone" placeholder="z.B. Fr. Müller 0171-123456" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">E-Mail Adresse</label>
+                    <input type="email" id="kidEmail" placeholder="kontakt@beispiel.de" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeKidModal()" class="px-4 py-2 text-sm text-slate-400 hover:bg-slate-700 rounded-xl">Abbrechen</button>
+                    <button type="submit" class="px-4 py-2 text-sm bg-ocean-600 hover:bg-ocean-500 text-white rounded-xl font-semibold shadow">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- TRAILER MODAL -->
+    <div id="trailerModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-700 text-slate-100">
+            <h3 class="text-lg font-bold text-white mb-4">Stamm-Hänger / Dachträger anlegen</h3>
+            <form id="trailerForm" onsubmit="saveTrailer(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Bezeichnung / Kennzeichen *</label>
+                    <input type="text" id="trailerName" placeholder="z.B. 420er Doppeldecker (KI-Y 123)" required class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Bootsklasse</label>
+                        <select id="trailerBoatClass" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                            <option value="Opti A">Opti A</option>
+                            <option value="Opti B">Opti B</option>
+                            <option value="Opti">Opti Universal</option>
+                            <option value="420">420er</option>
+                            <option value="ILCA">ILCA</option>
+                            <option value="29er">29er</option>
+                            <option value="49er">49er</option>
+                            <option value="Universal">Universal / Multi</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Max. Zuggewicht (kg)</label>
+                        <input type="number" id="trailerWeight" placeholder="1500" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Etagen</label>
+                        <select id="trailerLevels" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                            <option value="1">1 Etage</option>
+                            <option value="2" selected>2 Etagen</option>
+                            <option value="3">3 Etagen</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Boote pro Etage</label>
+                        <select id="trailerPerLevel" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                            <option value="1">1 Boot</option>
+                            <option value="2" selected>2 Boote</option>
+                            <option value="3">3 Boote</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeTrailerModal()" class="px-4 py-2 text-sm text-slate-400 hover:bg-slate-700 rounded-xl">Abbrechen</button>
+                    <button type="submit" class="px-4 py-2 text-sm bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-semibold shadow">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- CAR MODAL -->
+    <div id="carModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-700 text-slate-100">
+            <h3 id="carModalTitle" class="text-lg font-bold text-white mb-4">Fahrzeug eintragen / bearbeiten</h3>
+            <form id="carForm" onsubmit="saveCar(event)" class="space-y-3">
+                <input type="hidden" id="carId">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Modell & Kennzeichen *</label>
+                    <input type="text" id="carName" placeholder="z.B. VW Multivan (KI-SE 100)" required class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Fahrer/in *</label>
+                        <input type="text" id="carDriver" placeholder="Name des Fahrers" required class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Freie Sitzplätze</label>
+                        <input type="number" id="carSeats" value="4" min="1" max="9" required class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                    </div>
+                </div>
+
+                <div class="pt-2 border-t border-slate-700 space-y-2">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">In welcher Bootsklasse segelt Ihr Kind?</label>
+                        <select id="carChildClass" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white font-semibold">
+                            <option value="Keine bestimmte">Keine Angabe / Trainer / Allgemein</option>
+                            <option value="Opti A">Optimist A</option>
+                            <option value="Opti B">Optimist B</option>
+                            <option value="420">420er</option>
+                            <option value="ILCA">ILCA (Laser)</option>
+                            <option value="29er">29er</option>
+                            <option value="49er">49er / FX</option>
+                            <option value="Sonstige">Sonstige Klasse</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="pt-2 border-t border-slate-700 space-y-2">
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" id="carHasAHK" onchange="toggleAHKOptions()" class="w-4 h-4 text-blue-600 rounded bg-slate-900 border-slate-700">
+                        <span class="text-xs font-semibold text-slate-200">Anhängerkupplung (AHK) vorhanden</span>
+                    </label>
+
+                    <div id="largeTrailerOptionContainer" class="pl-6 space-y-2 hidden">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Max. Anhängelast gebremst (kg)</label>
+                            <input type="number" id="carMaxTow" placeholder="2000" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                        </div>
+                        <label class="flex items-center gap-2 cursor-pointer select-none">
+                            <input type="checkbox" id="carCanTowLargeTrailer" class="w-4 h-4 text-blue-600 rounded bg-slate-900 border-slate-700">
+                            <span class="text-xs text-slate-300">Darf schwere RIB- oder Doppeldecker-Hänger ziehen</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeCarModal()" class="px-4 py-2 text-sm text-slate-400 hover:bg-slate-700 rounded-xl">Abbrechen</button>
+                    <button type="submit" class="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-semibold shadow">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- RIB MODAL -->
+    <div id="ribModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-700 text-slate-100">
+            <h3 class="text-lg font-bold text-white mb-4">Begleitmotorboot (RIB) anlegen</h3>
+            <form id="ribForm" onsubmit="saveRib(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Boot Name *</label>
+                    <input type="text" id="ribName" placeholder="z.B. Tornado RIB 5.8m" required class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Fahrer / Coach *</label>
+                        <input type="text" id="ribDriver" placeholder="Bootsführer" required class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Motor</label>
+                        <input type="text" id="ribMotor" placeholder="z.B. 90 PS Yamaha" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Treibstoff Tank</label>
+                        <input type="text" id="ribFuel" placeholder="z.B. 70L Einbautank" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">UKW Funk Rufzeichen</label>
+                        <input type="text" id="ribVHF" placeholder="z.B. DL1234" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeRibModal()" class="px-4 py-2 text-sm text-slate-400 hover:bg-slate-700 rounded-xl">Abbrechen</button>
+                    <button type="submit" class="px-4 py-2 text-sm bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-semibold shadow">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- CHECKLIST ITEM MODAL -->
+    <div id="checklistItemModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-700 text-slate-100">
+            <h3 class="text-lg font-bold text-white mb-4">Packlisten-Position hinzufügen</h3>
+            <form id="checklistItemForm" onsubmit="saveChecklistItem(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Kategorie *</label>
+                    <input type="text" id="checkItemCategory" list="existingCategories" placeholder="z.B. 420er Spezialteile, Werkzeug..." required class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                    <datalist id="existingCategories"></datalist>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Bezeichnung des Gegenstands *</label>
+                    <input type="text" id="checkItemText" placeholder="z.B. Ersatz-Trapezhosen, Werkzeugkoffer" required class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeChecklistItemModal()" class="px-4 py-2 text-sm text-slate-400 hover:bg-slate-700 rounded-xl">Abbrechen</button>
+                    <button type="submit" class="px-4 py-2 text-sm bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-semibold shadow">Hinzufügen</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- LOGIC & APPLICATION CODE -->
+    <script>
+        const COACH_PASSWORD = "trainer2026";
+
+        const INITIAL_DATA = {
+            currentUserRole: "parent",
+            activeEventId: "e1",
+            currentCalendarDate: { year: 2026, month: 5 },
+            selectedClassFilter: "ALL",
+            
+            masterKids: [
+                { id: "k1", firstName: "Lukas", lastName: "Schmidt", group: "Opti A", role: "Einzelsegler", sailNum: "GER 13412", boatType: "Eigenes Boot", phone: "Fr. Schmidt 0171-889900", email: "schmidt@beispiel.de" },
+                { id: "k2", firstName: "Mia", lastName: "Weber", group: "Opti B", role: "Einzelsegler", sailNum: "GER 12890", boatType: "Vereinsboot", phone: "Hr. Weber 0172-112233", email: "weber@beispiel.de" },
+                { id: "k3", firstName: "Jonas", lastName: "Beyer", group: "420", role: "Steuermann", sailNum: "GER 56200", boatType: "Eigenes Boot", phone: "Hr. Beyer 0176-445566", email: "beyer@beispiel.de" },
+                { id: "k4", firstName: "Sophie", lastName: "Meyer", group: "420", role: "Vorschoter", sailNum: "GER 56200", boatType: "Eigenes Boot", phone: "Fr. Meyer 0151-998877", email: "meyer@beispiel.de" },
+                { id: "k5", firstName: "Finn", lastName: "Wagner", group: "ILCA", role: "Einzelsegler", sailNum: "GER 211050", boatType: "Eigenes Boot", phone: "Hr. Wagner 0173-334455", email: "wagner@beispiel.de" },
+                { id: "k6", firstName: "Emma", lastName: "Schulz", group: "29er", role: "Steuermann", sailNum: "GER 2890", boatType: "Vereinsboot", phone: "Fr. Schulz 0160-223344", email: "schulz@beispiel.de" },
+                { id: "k7", firstName: "Tim", lastName: "Hoffmann", group: "29er", role: "Vorschoter", sailNum: "GER 2890", boatType: "Vereinsboot", phone: "Hr. Hoffmann 0170-112244", email: "hoffmann@beispiel.de" }
+            ],
+            masterTrailers: [
+                { id: "t1", name: "Opti 6er-Trailer (KI-Y 101)", boatClass: "Opti A", weight: 1200, levels: 3, perLevel: 2 },
+                { id: "t2", name: "420er Doppeldecker (KI-Y 202)", boatClass: "420", weight: 1500, levels: 2, perLevel: 2 },
+                { id: "t3", name: "Skiff/29er Trailer (KI-Y 303)", boatClass: "29er", weight: 1300, levels: 2, perLevel: 1 }
+            ],
+            masterCars: [
+                { id: "c1", name: "VW Multivan (KI-SE 100)", driver: "Lars Bähr (Trainer)", seats: 6, childClass: "Keine bestimmte", hasAHK: true, maxTow: 2500, canTowLargeTrailer: true },
+                { id: "c2", name: "Passat Kombi (KI-OP 55)", driver: "Herr Beyer (Eltern)", seats: 3, childClass: "420", hasAHK: true, maxTow: 1800, canTowLargeTrailer: false },
+                { id: "c3", name: "Audi A6 Avant (KI-AB 88)", driver: "Frau Meyer (Eltern)", seats: 3, childClass: "Opti A", hasAHK: true, maxTow: 2000, canTowLargeTrailer: true }
+            ],
+            masterRibs: [
+                { id: "r1", name: "Coach RIB 1 - Tornado 5.8m", driver: "Lars Bähr", motor: "90 PS Yamaha", fuel: "70L Einbautank", vhf: "DL-COACH1" },
+                { id: "r2", name: "Support RIB 2 - Highfield 4.6m", driver: "Arne (Co-Trainer)", motor: "50 PS Honda", fuel: "2x 25L Tanks", vhf: "DL-COACH2" }
+            ],
+
+            events: [
+                {
+                    id: "e1",
+                    name: "Kieler Woche 2026 (Multi-Class)",
+                    type: "Regatta",
+                    status: "Bestätigt",
+                    boatClass: "Alle Classes",
+                    location: "Kiel-Schilksee",
+                    coach: "Lars Bähr & Arne",
+                    startDate: "2026-06-20",
+                    endDate: "2026-06-28",
+                    notes: "Großes Event! Opti, 420er und 29er Teams gemeinsam vor Ort. Kranzeiten beachten!",
+                    participatingKidIds: ["k1", "k2", "k3", "k4", "k5", "k6", "k7"],
+                    participatingRibIds: ["r1", "r2"],
+                    trailerAssignments: {
+                        "t1": { "1-1": "k1", "1-2": "k2" },
+                        "t2": { "1-1": "k3", "2-1": "k4" },
+                        "t3": { "1-1": "k6" }
+                    },
+                    carAssignments: {
+                        "c1": { trailerId: "t2", passengers: ["k1", "k3", "k4", "k6"] },
+                        "c2": { trailerId: "t1", passengers: ["k2", "k5"] },
+                        "c3": { trailerId: "t3", passengers: ["k7"] }
+                    },
+                    checklist: [
+                        { id: "ch1", category: "Multi-Class Ausrüstung", text: "Ersatz-Spatzen & Wantenspanner (420/29er)", checked: true },
+                        { id: "ch2", category: "Multi-Class Ausrüstung", text: "Trapezhosen & Rigg-Spannungsmesser", checked: true },
+                        { id: "ch3", category: "RIB & Sicherheit", text: "Trainer-UKW-Funkgeräte & Wasserdichte Hüllen", checked: true },
+                        { id: "ch4", category: "Dokumente", text: "Vermessungsbriefe aller Klassen vorlegen", checked: false }
+                    ]
+                },
+                {
+                    id: "e2",
+                    name: "Warnemünder Woche 2026",
+                    type: "Regatta",
+                    status: "In Planung",
+                    boatClass: "420",
+                    location: "Warnemünde",
+                    coach: "Lars Bähr",
+                    startDate: "2026-07-04",
+                    endDate: "2026-07-12",
+                    notes: "Starke Welle vor Warnemünde. Ersatz-Ruderblätter und Tiller-Extender einpacken.",
+                    participatingKidIds: ["k3", "k4", "k6", "k7"],
+                    participatingRibIds: ["r1"],
+                    trailerAssignments: {},
+                    carAssignments: {},
+                    checklist: []
+                },
+                {
+                    id: "e3",
+                    name: "Opti B Silberseecup 2026",
+                    type: "Regatta",
+                    status: "Bestätigt",
+                    boatClass: "Opti B",
+                    location: "Haltern am See",
+                    coach: "Arne",
+                    startDate: "2026-06-12",
+                    endDate: "2026-06-14",
+                    notes: "Einsteiger-Regatta für unsere Opti B Gruppe.",
+                    participatingKidIds: ["k2"],
+                    participatingRibIds: ["r2"],
+                    trailerAssignments: {},
+                    carAssignments: {},
+                    checklist: []
+                }
+            ]
+        };
+
+        let appData = {};
+        let calendarMode = 'month';
+
+        // ===== LIVE-SYNC (optional) =====
+        // Für gemeinsame Daten zwischen Trainer & Eltern: Firebase Realtime Database URL eintragen,
+        // z.B. "https://mein-verein-default-rtdb.europe-west1.firebasedatabase.app". Leer = nur lokal.
+        const FIREBASE_DB_URL = "https://club-flottenlogistik-default-rtdb.europe-west1.firebasedatabase.app";
+        const SYNC_ENABLED = !!FIREBASE_DB_URL;
+        const DB_PATH = FIREBASE_DB_URL.replace(/\/+$/, '') + '/clubfleet.json';
+        const SHARED_KEYS = ['masterKids', 'masterTrailers', 'masterCars', 'masterRibs', 'events'];
+        const syncState = { inFlight: false, dirty: false, needPull: false, version: 0, last: {} };
+        const EMPTY_EVENT = { id: '', name: 'Kein Event vorhanden', type: '', status: '', boatClass: '', location: '', startDate: '', endDate: '', coach: '', notes: '', participatingKidIds: [], participatingRibIds: [], trailerAssignments: {}, carAssignments: {}, checklist: [] };
+        let alertTimer = null;
+
+        function esc(v) {
+            return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+        function fmtDate(s) {
+            return s ? s.split('-').reverse().join('.') : '';
+        }
+        function stable(v) {
+            return JSON.stringify(v, (k, x) => (x && typeof x === 'object' && !Array.isArray(x)) ? Object.keys(x).sort().reduce((o, key) => (o[key] = x[key], o), {}) : x);
+        }
+        function toArr(v) {
+            return Array.isArray(v) ? v.filter(x => x != null) : (v && typeof v === 'object' ? Object.values(v) : []);
+        }
+        // Firebase entfernt leere Arrays/Objekte -> Standardwerte wiederherstellen
+        function normalizeShared(d) {
+            const out = {};
+            SHARED_KEYS.forEach(k => { out[k] = toArr(d && d[k]); });
+            out.events.forEach(ev => {
+                ev.participatingKidIds = toArr(ev.participatingKidIds);
+                ev.participatingRibIds = toArr(ev.participatingRibIds);
+                ev.trailerAssignments = ev.trailerAssignments || {};
+                ev.carAssignments = ev.carAssignments || {};
+                Object.values(ev.carAssignments).forEach(c => { c.passengers = toArr(c.passengers); if (c.trailerId === undefined) c.trailerId = null; });
+                ev.checklist = toArr(ev.checklist);
+            });
+            return out;
+        }
+        function sharedData() {
+            const o = {};
+            SHARED_KEYS.forEach(k => { o[k] = appData[k]; });
+            return o;
+        }
+        function persistLocal() {
+            try {
+                localStorage.setItem('clubfleet_pro_data', JSON.stringify(sharedData()));
+                localStorage.setItem('clubfleet_ui', JSON.stringify({ activeEventId: appData.activeEventId, currentCalendarDate: appData.currentCalendarDate, selectedClassFilter: appData.selectedClassFilter }));
+            } catch (e) { /* Speicher blockiert (z.B. privater Modus) */ }
+        }
+        function refreshAll() {
+            cleanupOrphans();
+            applyRolePermissions();
+            renderAllViews();
+        }
+        function setSyncBadge(state) {
+            const b = document.getElementById('syncBadge');
+            if (!b) return;
+            b.className = 'hidden sm:inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-bold border ' + (state === null ? 'border-slate-700 text-slate-400' : state ? 'border-emerald-700 text-emerald-300' : 'border-rose-700 text-rose-300');
+            b.textContent = state === null ? 'Nur lokal' : state ? '● Live' : '● Offline';
+        }
+
+        // Aufräumen: sorgt dafür, dass alle Summen nur gültige Personen/Boote/Autos zählen
+        function cleanupOrphans() {
+            const kidIds = new Set(appData.masterKids.map(k => k.id));
+            const ribIds = new Set(appData.masterRibs.map(r => r.id));
+            const trailers = {}; appData.masterTrailers.forEach(t => { trailers[t.id] = t; });
+            const cars = {}; appData.masterCars.forEach(c => { cars[c.id] = c; });
+            appData.events.forEach(ev => {
+                ev.participatingKidIds = (ev.participatingKidIds || []).filter((id, i, a) => kidIds.has(id) && a.indexOf(id) === i);
+                ev.participatingRibIds = (ev.participatingRibIds || []).filter((id, i, a) => ribIds.has(id) && a.indexOf(id) === i);
+                const part = new Set(ev.participatingKidIds);
+                const ta = ev.trailerAssignments = ev.trailerAssignments || {};
+                const seenBoat = new Set();
+                Object.keys(ta).forEach(tid => {
+                    const tr = trailers[tid];
+                    if (!tr) { delete ta[tid]; return; }
+                    Object.keys(ta[tid]).forEach(sk => {
+                        const [l, p] = sk.split('-').map(Number);
+                        const kid = ta[tid][sk];
+                        if (!kid || !part.has(kid) || seenBoat.has(kid) || l < 1 || l > tr.levels || p < 1 || p > tr.perLevel) delete ta[tid][sk];
+                        else seenBoat.add(kid);
+                    });
+                    if (!Object.keys(ta[tid]).length) delete ta[tid];
+                });
+                const ca = ev.carAssignments = ev.carAssignments || {};
+                const seenPerson = new Set(), seenTrailer = new Set();
+                Object.keys(ca).forEach(cid => {
+                    const car = cars[cid];
+                    if (!car) { delete ca[cid]; return; }
+                    ca[cid].passengers = (ca[cid].passengers || []).filter(id => {
+                        if (!id || !part.has(id) || seenPerson.has(id)) return false;
+                        seenPerson.add(id); return true;
+                    }).slice(0, car.seats);
+                    const tId = ca[cid].trailerId;
+                    if (tId && (!trailers[tId] || seenTrailer.has(tId))) ca[cid].trailerId = null;
+                    else if (tId) seenTrailer.add(tId);
+                });
+            });
+        }
+
+        async function remotePush() {
+            if (!SYNC_ENABLED) return;
+            if (syncState.inFlight) { syncState.dirty = true; return; }
+            syncState.inFlight = true;
+            try {
+                do {
+                    syncState.dirty = false;
+                    const cur = sharedData(), patch = {};
+                    SHARED_KEYS.forEach(k => { if (stable(cur[k]) !== syncState.last[k]) patch[k] = cur[k]; });
+                    if (Object.keys(patch).length) {
+                        const res = await fetch(DB_PATH, { method: 'PATCH', body: JSON.stringify(patch) });
+                        if (!res.ok) throw new Error('HTTP ' + res.status);
+                        Object.keys(patch).forEach(k => { syncState.last[k] = stable(patch[k]); });
+                    }
+                } while (syncState.dirty);
+                setSyncBadge(true);
+            } catch (e) {
+                setSyncBadge(false);
+            } finally {
+                syncState.inFlight = false;
+                if (syncState.needPull) { syncState.needPull = false; remotePull(); }
+            }
+        }
+
+        async function remotePull() {
+            if (!SYNC_ENABLED) return;
+            if (syncState.inFlight) { syncState.needPull = true; return; }
+            const v = syncState.version;
+            try {
+                const res = await fetch(DB_PATH);
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const raw = await res.json();
+                if (v !== syncState.version || syncState.inFlight) { syncState.needPull = true; return; }
+                if (raw === null) { syncState.last = {}; remotePush(); return; }   // leere Datenbank: lokale Daten hochladen
+                const norm = normalizeShared(raw);
+                let changed = false;
+                SHARED_KEYS.forEach(k => {
+                    const s = stable(norm[k]);
+                    if (s !== stable(appData[k])) { appData[k] = norm[k]; changed = true; }
+                    syncState.last[k] = s;
+                });
+                setSyncBadge(true);
+                if (changed) {
+                    if (!appData.events.some(e => e.id === appData.activeEventId) && appData.events[0]) appData.activeEventId = appData.events[0].id;
+                    persistLocal();
+                    refreshAll();
+                }
+            } catch (e) {
+                setSyncBadge(false);
+            }
+        }
+
+        function initSync() {
+            // Andere Browser-Tabs (lokaler Modus) sofort aktualisieren
+            window.addEventListener('storage', e => {
+                if (SYNC_ENABLED || e.key !== 'clubfleet_pro_data' || !e.newValue) return;
+                try { Object.assign(appData, normalizeShared(JSON.parse(e.newValue))); refreshAll(); } catch (err) {}
+            });
+            if (!SYNC_ENABLED) { setSyncBadge(null); return; }
+            remotePull();
+            try {
+                const es = new EventSource(DB_PATH);
+                ['put', 'patch'].forEach(t => es.addEventListener(t, remotePull));
+                es.onerror = () => setSyncBadge(false);
+            } catch (e) {}
+            setInterval(remotePull, 30000);
+            document.addEventListener('visibilitychange', () => { if (!document.hidden) remotePull(); });
+        }
+
+        window.onload = function() {
+            loadData();
+            if (sessionStorage.getItem('clubfleet_coach_authenticated') === 'true') {
+                appData.currentUserRole = 'coach';
+            }
+            applyRolePermissions();
+            renderAllViews();
+            initSync();
+        };
+
+        function loadData() {
+            let shared = null, ui = {};
+            try {
+                shared = JSON.parse(localStorage.getItem('clubfleet_pro_data'));
+                ui = JSON.parse(localStorage.getItem('clubfleet_ui')) || {};
+            } catch (e) { shared = null; }
+            const base = (shared && shared.events) ? shared : JSON.parse(JSON.stringify(INITIAL_DATA));
+            appData = normalizeShared(base);
+            appData.currentUserRole = 'parent';   // Trainer-Rolle nur nach Passwort (kein Übernehmen aus dem Speicher)
+            appData.activeEventId = ui.activeEventId || base.activeEventId || INITIAL_DATA.activeEventId;
+            appData.currentCalendarDate = ui.currentCalendarDate || base.currentCalendarDate || INITIAL_DATA.currentCalendarDate;
+            appData.selectedClassFilter = ui.selectedClassFilter || base.selectedClassFilter || 'ALL';
+            if (!appData.events.some(e => e.id === appData.activeEventId) && appData.events[0]) appData.activeEventId = appData.events[0].id;
+            cleanupOrphans();
+        }
+
+        function saveData() {
+            cleanupOrphans();
+            syncState.version++;
+            persistLocal();
+            remotePush();          // zuerst speichern/senden, dann darstellen
+            applyRolePermissions();
+            renderAllViews();
+        }
+
+        function requestCoachRole() {
+            if (sessionStorage.getItem('clubfleet_coach_authenticated') === 'true') {
+                setUserRole('coach');
+            } else {
+                document.getElementById('coachPasswordInput').value = '';
+                document.getElementById('coachAuthError').classList.add('hidden');
+                document.getElementById('coachAuthModal').classList.remove('hidden');
+            }
+        }
+
+        function closeCoachAuthModal() {
+            document.getElementById('coachAuthModal').classList.add('hidden');
+        }
+
+        function verifyCoachPassword(e) {
+            e.preventDefault();
+            const inputPass = document.getElementById('coachPasswordInput').value;
+            if (inputPass === COACH_PASSWORD) {
+                sessionStorage.setItem('clubfleet_coach_authenticated', 'true');
+                closeCoachAuthModal();
+                setUserRole('coach');
+            } else {
+                document.getElementById('coachAuthError').classList.remove('hidden');
+            }
+        }
+
+        function isCoach() {
+            return appData.currentUserRole === 'coach';
+        }
+
+        function setUserRole(role) {
+            appData.currentUserRole = role;
+            saveData();
+            showAlert(role === 'coach' ? "Admin-Modus (Trainer) aktiv: Vollzugriff." : "Eltern-Modus aktiv: Eingeschränkte Rechte.", "info");
+        }
+
+        function applyRolePermissions() {
+            const roleCoachBtn = document.getElementById('roleBtnCoach');
+            const roleParentBtn = document.getElementById('roleBtnParent');
+            const parentNotice = document.getElementById('parentNoticeBanner');
+
+            if (isCoach()) {
+                roleCoachBtn.className = "px-2.5 py-1 text-xs font-bold rounded-lg transition flex items-center gap-1 bg-amber-500 text-slate-950 shadow";
+                roleParentBtn.className = "px-2.5 py-1 text-xs font-bold rounded-lg transition flex items-center gap-1 text-slate-400 hover:text-white";
+                parentNotice.classList.add('hidden');
+                
+                document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
+            } else {
+                roleParentBtn.className = "px-2.5 py-1 text-xs font-bold rounded-lg transition flex items-center gap-1 bg-emerald-500 text-slate-950 shadow";
+                roleCoachBtn.className = "px-2.5 py-1 text-xs font-bold rounded-lg transition flex items-center gap-1 text-slate-400 hover:text-white";
+                parentNotice.classList.remove('hidden');
+
+                document.querySelectorAll('.admin-only').forEach(el => el.classList.add('hidden'));
+
+                const masterTab = document.getElementById('view-masterdata');
+                if (masterTab && !masterTab.classList.contains('hidden')) {
+                    switchTab('overview');
+                }
+            }
+        }
+
+        function resetDataConfirmation() {
+            if (!isCoach()) return;
+            if (confirm("ACHTUNG: Alle Daten werden auf die Beispieldaten zurückgesetzt" + (SYNC_ENABLED ? " – für ALLE Nutzer (Trainer & Eltern)!" : ".") + " Fortfahren?")) {
+                appData = JSON.parse(JSON.stringify(INITIAL_DATA));
+                saveData();
+                showAlert("Saisondaten wiederhergestellt!", "success");
+            }
+        }
+
+        function switchTab(tabId) {
+            if (tabId === 'masterdata' && !isCoach()) {
+                showAlert("Zugriff verweigert: Der Bereich Vereinskader & Flotte ist Trainern vorbehalten.", "info");
+                return;
+            }
+
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-ocean-600', 'text-white', 'shadow');
+                btn.classList.add('text-slate-400', 'hover:bg-slate-800/60');
+            });
+
+            const selectedView = document.getElementById(`view-${tabId}`);
+            const selectedTabBtn = document.getElementById(`tab-${tabId}`);
+
+            if (selectedView) selectedView.classList.remove('hidden');
+            if (selectedTabBtn) {
+                selectedTabBtn.classList.remove('text-slate-400', 'hover:bg-slate-800/60');
+                selectedTabBtn.classList.add('bg-ocean-600', 'text-white', 'shadow');
+            }
+        }
+
+        function showAlert(msg, type = 'info') {
+            const container = document.getElementById('alertContainer');
+            const icon = document.getElementById('alertIcon');
+            const message = document.getElementById('alertMessage');
+
+            container.className = "mb-6 p-4 rounded-2xl border shadow-lg flex items-center justify-between no-print transition-all ";
+            if (type === 'success') {
+                container.classList.add('bg-emerald-950/80', 'border-emerald-700', 'text-emerald-200');
+                icon.className = "fa-solid fa-circle-check text-emerald-400";
+            } else {
+                container.classList.add('bg-sky-950/80', 'border-sky-700', 'text-sky-200');
+                icon.className = "fa-solid fa-circle-info text-sky-400";
+            }
+
+            message.textContent = msg;
+            container.classList.remove('hidden');
+
+            clearTimeout(alertTimer);
+            alertTimer = setTimeout(() => { container.classList.add('hidden'); }, 4000);
+        }
+
+        function closeAlert() {
+            document.getElementById('alertContainer').classList.add('hidden');
+        }
+
+        function renderAllViews() {
+            // Jede Ansicht einzeln absichern: ein Fehler darf weder andere Ansichten noch das Speichern blockieren
+            [populateEventSelector, renderCalendarView, renderEventDashboard, renderParticipantsSelector,
+             renderLogistics, renderRibs, renderChecklist, renderMasterData].forEach(fn => {
+                try { fn(); } catch (err) { console.error('Render-Fehler in ' + fn.name + ':', err); }
+            });
+            if (!isCoach()) {
+                document.querySelectorAll('#view-participants input[type=checkbox], #trailersGrid select, #carsGrid select').forEach(el => { el.disabled = true; });
+            }
+        }
+
+        function getActiveEvent() {
+            return appData.events.find(e => e.id === appData.activeEventId) || appData.events[0] || EMPTY_EVENT;
+        }
+
+        function populateEventSelector() {
+            const select = document.getElementById('activeEventSelect');
+            select.innerHTML = '';
+            appData.events.forEach(ev => {
+                const opt = document.createElement('option');
+                opt.value = ev.id;
+                opt.textContent = `${ev.name} (${fmtDate(ev.startDate).slice(0, 5)})`;
+                if (ev.id === appData.activeEventId) opt.selected = true;
+                select.appendChild(opt);
+            });
+        }
+
+        function switchActiveEvent(eventId) {
+            appData.activeEventId = eventId;
+            saveData();
+            showAlert(`Event gewechselt: ${getActiveEvent().name}`, "info");
+        }
+
+        function onClassFilterChange(filterVal) {
+            appData.selectedClassFilter = filterVal;
+            saveData();
+        }
+
+        // 1. CALENDAR MODULE
+        function setCalendarMode(mode) {
+            calendarMode = mode;
+            document.getElementById('calendarMonthContainer').classList.toggle('hidden', mode !== 'month');
+            document.getElementById('calendarListContainer').classList.toggle('hidden', mode !== 'list');
+
+            document.getElementById('btnViewCalendar').className = mode === 'month' ? 'px-3 py-1.5 rounded-lg bg-ocean-600 text-white shadow' : 'px-3 py-1.5 rounded-lg text-slate-400 hover:text-white';
+            document.getElementById('btnViewList').className = mode === 'list' ? 'px-3 py-1.5 rounded-lg bg-ocean-600 text-white shadow' : 'px-3 py-1.5 rounded-lg text-slate-400 hover:text-white';
+            renderCalendarView();
+        }
+
+        function prevMonth() {
+            appData.currentCalendarDate.month--;
+            if (appData.currentCalendarDate.month < 0) {
+                appData.currentCalendarDate.month = 11;
+                appData.currentCalendarDate.year--;
+            }
+            saveData();
+        }
+
+        function nextMonth() {
+            appData.currentCalendarDate.month++;
+            if (appData.currentCalendarDate.month > 11) {
+                appData.currentCalendarDate.month = 0;
+                appData.currentCalendarDate.year++;
+            }
+            saveData();
+        }
+
+        function currentMonth() {
+            const today = new Date();
+            appData.currentCalendarDate = { year: today.getFullYear(), month: today.getMonth() };
+            saveData();
+        }
+
+        function isEventMatchingFilter(ev, filter) {
+            if (!filter || filter === "ALL") return true;
+            if (!ev.boatClass || ev.boatClass === "Alle Classes") return true;
+            return ev.boatClass === filter;
+        }
+
+        function renderCalendarView() {
+            const year = appData.currentCalendarDate.year;
+            const month = appData.currentCalendarDate.month;
+            const filter = appData.selectedClassFilter || "ALL";
+            const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+
+            const filterDropdown = document.getElementById('calendarClassFilter');
+            if (filterDropdown) filterDropdown.value = filter;
+
+            document.getElementById('calendarMonthTitle').textContent = `${monthNames[month]} ${year}`;
+
+            const filteredEvents = appData.events.filter(ev => isEventMatchingFilter(ev, filter));
+
+            if (calendarMode === 'month') {
+                const grid = document.getElementById('calendarGrid');
+                grid.innerHTML = '';
+
+                const firstDay = new Date(year, month, 1);
+                const lastDay = new Date(year, month + 1, 0);
+
+                let startingDay = firstDay.getDay() - 1;
+                if (startingDay === -1) startingDay = 6;
+
+                for (let i = 0; i < startingDay; i++) {
+                    grid.innerHTML += `<div class="h-24 bg-slate-900/30 rounded-xl border border-slate-800/40"></div>`;
+                }
+
+                for (let day = 1; day <= lastDay.getDate(); day++) {
+                    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    
+                    const dayEvents = filteredEvents.filter(ev => {
+                        return dateStr >= ev.startDate && dateStr <= ev.endDate;
+                    });
+
+                    let dayEventsHtml = '';
+                    dayEvents.forEach(ev => {
+                        const isRegatta = ev.type === 'Regatta';
+                        const badgeColor = isRegatta ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : (ev.type === 'Trainingslager' ? 'bg-sky-500/20 text-sky-300 border-sky-500/30' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30');
+                        
+                        const classBadge = ev.boatClass ? `[${esc(ev.boatClass)}] ` : '';
+
+                        dayEventsHtml += `
+                            <button onclick="selectAndGoToEvent('${ev.id}')" class="w-full text-left text-[11px] font-semibold p-1 rounded-lg border ${badgeColor} truncate transition hover:scale-105" title="${esc(ev.name)} (${esc(ev.boatClass) || 'Multi-Class'})">
+                                ${classBadge}${esc(ev.name)}
+                            </button>
+                        `;
+                    });
+
+                    grid.innerHTML += `
+                        <div class="h-24 p-1.5 bg-slate-800/60 rounded-xl border border-slate-700/50 flex flex-col justify-between overflow-hidden">
+                            <span class="text-xs font-bold text-slate-400">${day}</span>
+                            <div class="space-y-1 overflow-y-auto no-scrollbar">${dayEventsHtml}</div>
+                        </div>
+                    `;
+                }
+            } else {
+                const container = document.getElementById('eventListGrid');
+                container.innerHTML = '';
+
+                if (filteredEvents.length === 0) {
+                    container.innerHTML = `<div class="col-span-full p-8 text-center text-slate-400 text-sm bg-slate-800/30 rounded-2xl border border-slate-700/40">Keine Events für die gewählte Bootsklasse "${filter}" gefunden.</div>`;
+                    return;
+                }
+
+                filteredEvents.forEach(ev => {
+                    const card = document.createElement('div');
+                    card.className = "bg-slate-800/50 p-5 rounded-2xl border border-slate-700/60 shadow-xl flex flex-col justify-between backdrop-blur-md";
+                    card.innerHTML = `
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-bold px-2.5 py-0.5 rounded-full ${ev.type === 'Regatta' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-sky-500/20 text-sky-300 border border-sky-500/30'}">${esc(ev.type)}</span>
+                                <span class="text-xs text-slate-400 font-medium">${esc(ev.status)}</span>
+                            </div>
+                            <h3 class="font-bold text-white text-base mb-1">${esc(ev.name)}</h3>
+                            <div class="text-xs text-slate-400 space-y-1">
+                                <div><i class="fa-solid fa-sailboat w-4 text-slate-500"></i> Klasse: <span class="font-semibold text-ocean-400">${esc(ev.boatClass) || 'Alle Classes'}</span></div>
+                                <div><i class="fa-solid fa-location-dot w-4 text-slate-500"></i> ${esc(ev.location)}</div>
+                                <div><i class="fa-solid fa-calendar w-4 text-slate-500"></i> ${fmtDate(ev.startDate)} - ${fmtDate(ev.endDate)}</div>
+                                <div><i class="fa-solid fa-user-tie w-4 text-slate-500"></i> Coach: ${esc(ev.coach) || 'k.A.'}</div>
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-slate-700/60 flex items-center justify-between">
+                            ${isCoach() ? `<button onclick="openEventModal('${ev.id}')" class="text-xs text-slate-400 hover:text-white font-medium"><i class="fa-solid fa-pen mr-1"></i> Bearbeiten</button>` : '<span></span>'}
+                            <button onclick="selectAndGoToEvent('${ev.id}')" class="text-xs font-semibold bg-ocean-600 hover:bg-ocean-500 text-white px-3 py-1.5 rounded-lg shadow transition">
+                                Zur Logistik <i class="fa-solid fa-arrow-right ml-1"></i>
+                            </button>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            }
+        }
+
+        function selectAndGoToEvent(eventId) {
+            appData.activeEventId = eventId;
+            saveData();
+            switchTab('overview');
+        }
+
+        function openEventModal(eventId = null) {
+            if (!isCoach()) return;
+            document.getElementById('eventForm').reset();
+            document.getElementById('eventId').value = '';
+            document.getElementById('btnDeleteEvent').classList.add('hidden');
+            document.getElementById('eventModalTitle').textContent = 'Neues Event im Saisonkalender';
+
+            if (eventId) {
+                const ev = appData.events.find(e => e.id === eventId);
+                if (ev) {
+                    document.getElementById('eventId').value = ev.id;
+                    document.getElementById('eventInputName').value = ev.name;
+                    document.getElementById('eventInputType').value = ev.type;
+                    document.getElementById('eventInputStatus').value = ev.status;
+                    document.getElementById('eventInputBoatClass').value = ev.boatClass || 'Alle Classes';
+                    document.getElementById('eventInputLocation').value = ev.location;
+                    document.getElementById('eventInputStartDate').value = ev.startDate;
+                    document.getElementById('eventInputEndDate').value = ev.endDate;
+                    document.getElementById('eventInputCoach').value = ev.coach || '';
+                    document.getElementById('eventInputNotes').value = ev.notes || '';
+
+                    document.getElementById('btnDeleteEvent').classList.remove('hidden');
+                    document.getElementById('eventModalTitle').textContent = 'Event bearbeiten';
+                }
+            }
+            document.getElementById('eventModal').classList.remove('hidden');
+        }
+
+        function closeEventModal() {
+            document.getElementById('eventModal').classList.add('hidden');
+        }
+
+        function saveEvent(e) {
+            e.preventDefault();
+            if (!isCoach()) return;
+            const id = document.getElementById('eventId').value;
+            const existingEv = id ? appData.events.find(e => e.id === id) : null;
+
+            const newEv = {
+                id: id || 'e_' + Date.now(),
+                name: document.getElementById('eventInputName').value,
+                type: document.getElementById('eventInputType').value,
+                status: document.getElementById('eventInputStatus').value,
+                boatClass: document.getElementById('eventInputBoatClass').value,
+                location: document.getElementById('eventInputLocation').value,
+                startDate: document.getElementById('eventInputStartDate').value,
+                endDate: document.getElementById('eventInputEndDate').value,
+                coach: document.getElementById('eventInputCoach').value,
+                notes: document.getElementById('eventInputNotes').value,
+                participatingKidIds: existingEv ? (existingEv.participatingKidIds || []) : appData.masterKids.map(k=>k.id),
+                participatingRibIds: existingEv ? (existingEv.participatingRibIds || []) : appData.masterRibs.map(r=>r.id),
+                trailerAssignments: existingEv ? (existingEv.trailerAssignments || {}) : {},
+                carAssignments: existingEv ? (existingEv.carAssignments || {}) : {},
+                checklist: existingEv ? (existingEv.checklist || []) : []
+            };
+
+            if (id) {
+                const idx = appData.events.findIndex(e => e.id === id);
+                if (idx !== -1) appData.events[idx] = newEv;
+            } else {
+                appData.events.push(newEv);
+                appData.activeEventId = newEv.id;
+            }
+
+            closeEventModal();
+            saveData();
+            showAlert("Event im Kalender gespeichert!", "success");
+        }
+
+        function deleteCurrentModalEvent() {
+            if (!isCoach()) return;
+            const id = document.getElementById('eventId').value;
+            if (appData.events.length <= 1) { showAlert("Das letzte Event kann nicht gelöscht werden.", "info"); return; }
+            if (id && confirm("Event wirklich samt Logistikplanung löschen?")) {
+                appData.events = appData.events.filter(e => e.id !== id);
+                if (appData.activeEventId === id && appData.events.length > 0) {
+                    appData.activeEventId = appData.events[0].id;
+                }
+                closeEventModal();
+                saveData();
+                showAlert("Event gelöscht.", "info");
+            }
+        }
+
+        function generateICSContent(eventsArray) {
+            const t = s => String(s || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+            const endExclusive = d => { const x = new Date(d + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() + 1); return x.toISOString().slice(0, 10).replace(/-/g, ''); };
+            const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+Z$/, 'Z');
+            let icsStr = "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//ClubFleet Pro Regatta Manager//DE\r\nCALSCALE:GREGORIAN\r\n";
+            eventsArray.forEach(ev => {
+                icsStr += "BEGIN:VEVENT\r\n";
+                icsStr += `UID:${ev.id}@clubfleet\r\nDTSTAMP:${stamp}\r\n`;
+                icsStr += `SUMMARY:${t(ev.name)} [${t(ev.boatClass || 'Multi-Class')}]\r\n`;
+                icsStr += `LOCATION:${t(ev.location)}\r\n`;
+                icsStr += `DESCRIPTION:${t(`Typ: ${ev.type} | Klasse: ${ev.boatClass || 'Alle'} | Coach: ${ev.coach || ''}\nNotizen: ${ev.notes || ''}`)}\r\n`;
+                icsStr += `DTSTART;VALUE=DATE:${ev.startDate.replace(/-/g, '')}\r\n`;
+                icsStr += `DTEND;VALUE=DATE:${endExclusive(ev.endDate)}\r\n`;
+                icsStr += "END:VEVENT\r\n";
+            });
+            icsStr += "END:VCALENDAR\r\n";
+            return icsStr;
+        }
+
+        function downloadICSFile(filename, content) {
+            const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function exportSingleEventICS() {
+            const ev = getActiveEvent();
+            const content = generateICSContent([ev]);
+            downloadICSFile(`${ev.name.replace(/\s+/g, '_')}.ics`, content);
+        }
+
+        function exportSeasonICS() {
+            const content = generateICSContent(appData.events);
+            downloadICSFile(`ClubFleet_Saison_2026.ics`, content);
+        }
+
+        // 2. EVENT DASHBOARD
+        function renderEventDashboard() {
+            const ev = getActiveEvent();
+            document.getElementById('dashTitle').textContent = ev.name;
+            document.getElementById('dashTypeBadge').textContent = ev.type + (ev.boatClass ? ` (${ev.boatClass})` : '');
+            document.getElementById('dashStatusBadge').textContent = ev.status;
+
+            const start = fmtDate(ev.startDate);
+            const end = fmtDate(ev.endDate);
+            document.getElementById('dashDates').textContent = `${start} - ${end} | Ort: ${ev.location}`;
+
+            const kidsCount = (ev.participatingKidIds || []).length;
+
+            let assignedOptiCount = 0;
+            if (ev.trailerAssignments) {
+                Object.values(ev.trailerAssignments).forEach(slots => {
+                    Object.values(slots).forEach(val => { if(val) assignedOptiCount++; });
+                });
+            }
+            const trailerPercent = kidsCount > 0 ? Math.round((assignedOptiCount / kidsCount) * 100) : 0;
+            document.getElementById('dashTrailerStatusBadge').textContent = `${assignedOptiCount}/${kidsCount} geladen`;
+            document.getElementById('dashTrailerBar').style.width = `${Math.min(trailerPercent, 100)}%`;
+
+            let assignedKidsCount = 0;
+            if (ev.carAssignments) {
+                Object.values(ev.carAssignments).forEach(car => {
+                    assignedKidsCount += (car.passengers || []).length;
+                });
+            }
+            const seatsPercent = kidsCount > 0 ? Math.round((assignedKidsCount / kidsCount) * 100) : 0;
+            document.getElementById('dashSeatsStatusBadge').textContent = `${assignedKidsCount}/${kidsCount} untergebracht`;
+            document.getElementById('dashSeatsBar').style.width = `${Math.min(seatsPercent, 100)}%`;
+
+            const totalCheck = (ev.checklist || []).length;
+            const doneCheck = (ev.checklist || []).filter(c => c.checked).length;
+            const checkPercent = totalCheck > 0 ? Math.round((doneCheck / totalCheck) * 100) : 0;
+            document.getElementById('dashChecklistBadge').textContent = `${checkPercent}% bereit`;
+            document.getElementById('dashChecklistBar').style.width = `${checkPercent}%`;
+
+            renderSummaryView();
+        }
+
+        function renderSummaryView() {
+            const ev = getActiveEvent();
+            const container = document.getElementById('summaryViewContainer');
+            container.innerHTML = '';
+
+            let carSummaryHtml = `<div class="p-4 bg-slate-900/80 rounded-xl border border-slate-700">
+                <h4 class="font-bold text-xs uppercase text-slate-400 mb-3"><i class="fa-solid fa-car text-blue-400 mr-1"></i> Autos & Hänger-Zuweisung</h4>
+                <div class="space-y-3">`;
+
+            appData.masterCars.forEach(car => {
+                const carEvState = ev.carAssignments ? ev.carAssignments[car.id] : null;
+                const assignedTrailerId = carEvState ? carEvState.trailerId : null;
+                const assignedTrailer = appData.masterTrailers.find(t => t.id === assignedTrailerId);
+                const passengers = carEvState ? (carEvState.passengers || []) : [];
+
+                const passNames = passengers.map(id => {
+                    const k = appData.masterKids.find(kid => kid.id === id);
+                    return k ? `${esc(k.firstName)} ${esc(k.lastName)} (${esc(k.group)})` : '';
+                }).filter(Boolean).join(', ');
+
+                let ahkBadge = '';
+                if (car.hasAHK) {
+                    if (car.canTowLargeTrailer) {
+                        ahkBadge = `<span class="text-[10px] bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded font-medium"><i class="fa-solid fa-truck-monster mr-1"></i>Max ${car.maxTow||2000}kg</span>`;
+                    } else {
+                        ahkBadge = '<span class="text-[10px] bg-slate-800 text-slate-300 border border-slate-700 px-2 py-0.5 rounded font-medium"><i class="fa-solid fa-trailer mr-1"></i>AHK</span>';
+                    }
+                } else {
+                    ahkBadge = '<span class="text-[10px] bg-slate-800 text-slate-500 px-2 py-0.5 rounded font-normal">Keine AHK</span>';
+                }
+
+                const childClassBadge = car.childClass ? `<span class="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded font-semibold ml-2">Kind: ${esc(car.childClass)}</span>` : '';
+
+                carSummaryHtml += `
+                    <div class="text-xs bg-slate-800/80 p-3 rounded-lg border border-slate-700">
+                        <div class="font-bold text-white flex items-center justify-between">
+                            <span>${esc(car.name)} (${esc(car.driver)}) ${childClassBadge}</span>
+                            ${ahkBadge}
+                        </div>
+                        <div class="mt-2 text-slate-300 space-y-1">
+                            <div><span class="text-slate-400">Gezogener Hänger:</span> ${assignedTrailer ? esc(assignedTrailer.name) : '<span class="text-slate-500">Keiner</span>'}</div>
+                            <div><span class="text-slate-400">Mitfahrer (${passengers.length}/${car.seats}):</span> ${passNames || '<span class="text-slate-500">Keine</span>'}</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            carSummaryHtml += `</div></div>`;
+
+            let trailerSummaryHtml = `<div class="p-4 bg-slate-900/80 rounded-xl border border-slate-700">
+                <h4 class="font-bold text-xs uppercase text-slate-400 mb-3"><i class="fa-solid fa-trailer text-amber-400 mr-1"></i> Hänger-Belegungsübersicht</h4>
+                <div class="space-y-3">`;
+
+            appData.masterTrailers.forEach(tr => {
+                const slots = (ev.trailerAssignments && ev.trailerAssignments[tr.id]) ? ev.trailerAssignments[tr.id] : {};
+                let loadedOptis = [];
+                Object.values(slots).forEach(kidId => {
+                    if (kidId) {
+                        const k = appData.masterKids.find(kid => kid.id === kidId);
+                        if (k) loadedOptis.push(`${esc(k.firstName)} (${esc(k.sailNum)})`);
+                    }
+                });
+
+                trailerSummaryHtml += `
+                    <div class="text-xs bg-slate-800/80 p-3 rounded-lg border border-slate-700">
+                        <div class="font-bold text-white flex items-center justify-between">
+                            <span>${esc(tr.name)}</span>
+                            <span class="text-[10px] text-amber-400 font-semibold">${esc(tr.boatClass)}</span>
+                        </div>
+                        <div class="mt-2 text-slate-300">
+                            <span class="text-slate-400">Geladene Boote (${loadedOptis.length}/${tr.levels * tr.perLevel}):</span> 
+                            ${loadedOptis.length > 0 ? loadedOptis.join(', ') : '<span class="text-slate-500">Leer</span>'}
+                        </div>
+                    </div>
+                `;
+            });
+
+            trailerSummaryHtml += `</div></div>`;
+
+            container.innerHTML = carSummaryHtml + trailerSummaryHtml;
+        }
+
+        // 3. PARTICIPANTS SELECTOR
+        function renderParticipantsSelector() {
+            const ev = getActiveEvent();
+            const kidsContainer = document.getElementById('participantsKidsGrid');
+            const ribsContainer = document.getElementById('participantsRibsGrid');
+
+            kidsContainer.innerHTML = '';
+            ribsContainer.innerHTML = '';
+
+            const selectedKids = ev.participatingKidIds || [];
+            document.getElementById('selectedKidsCountBadge').textContent = `${selectedKids.length} ausgewählt`;
+
+            appData.masterKids.forEach(kid => {
+                const isChecked = selectedKids.includes(kid.id);
+                const item = document.createElement('label');
+                item.className = `flex items-center gap-3 p-3 rounded-xl border cursor-pointer select-none transition ${isChecked ? 'bg-emerald-950/40 border-emerald-500/50 text-white' : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'}`;
+                item.innerHTML = `
+                    <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleParticipantKid('${kid.id}')" class="w-4 h-4 text-emerald-500 rounded border-slate-700 bg-slate-900 focus:ring-emerald-500">
+                    <div class="text-xs">
+                        <div class="font-bold ${isChecked ? 'text-emerald-300' : 'text-slate-300'}">${esc(kid.firstName)} ${esc(kid.lastName)}</div>
+                        <div class="text-[10px] text-slate-400">${esc(kid.group)} | ${esc(kid.sailNum)}</div>
+                    </div>
+                `;
+                kidsContainer.appendChild(item);
+            });
+
+            const selectedRibs = ev.participatingRibIds || [];
+            document.getElementById('selectedRibsCountBadge').textContent = `${selectedRibs.length} ausgewählt`;
+
+            appData.masterRibs.forEach(rib => {
+                const isChecked = selectedRibs.includes(rib.id);
+                const item = document.createElement('label');
+                item.className = `flex items-center gap-3 p-3 rounded-xl border cursor-pointer select-none transition ${isChecked ? 'bg-sky-950/40 border-sky-500/50 text-white' : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'}`;
+                item.innerHTML = `
+                    <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleParticipantRib('${rib.id}')" class="w-4 h-4 text-sky-500 rounded border-slate-700 bg-slate-900 focus:ring-sky-500">
+                    <div class="text-xs">
+                        <div class="font-bold ${isChecked ? 'text-sky-300' : 'text-slate-300'}">${esc(rib.name)}</div>
+                        <div class="text-[10px] text-slate-400">Fahrer: ${esc(rib.driver)} | ${esc(rib.motor)}</div>
+                    </div>
+                `;
+                ribsContainer.appendChild(item);
+            });
+        }
+
+        function toggleParticipantKid(kidId) {
+            const ev = getActiveEvent();
+            if (!ev.participatingKidIds) ev.participatingKidIds = [];
+            
+            const idx = ev.participatingKidIds.indexOf(kidId);
+            if (idx === -1) {
+                ev.participatingKidIds.push(kidId);
+            } else {
+                ev.participatingKidIds.splice(idx, 1);
+            }
+            saveData();
+        }
+
+        function toggleParticipantRib(ribId) {
+            const ev = getActiveEvent();
+            if (!ev.participatingRibIds) ev.participatingRibIds = [];
+            
+            const idx = ev.participatingRibIds.indexOf(ribId);
+            if (idx === -1) {
+                ev.participatingRibIds.push(ribId);
+            } else {
+                ev.participatingRibIds.splice(idx, 1);
+            }
+            saveData();
+        }
+
+        // 4. LOGISTICS (TRAILERS, CARS & ASSIGNMENTS WITH ABSICHERUNG)
+        function getKidLocation(kidId, currentEv) {
+            // Hilfsfunktion zur Ermittlung des aktuellen Orts einer Person im Event
+            if (currentEv.carAssignments) {
+                for (const carId in currentEv.carAssignments) {
+                    const carData = currentEv.carAssignments[carId];
+                    if (carData.passengers && carData.passengers.includes(kidId)) {
+                        const car = appData.masterCars.find(c => c.id === carId);
+                        return car ? esc(car.name) : "anderem Auto";
+                    }
+                }
+            }
+            return null;
+        }
+
+        function getBoatLocation(kidId, currentEv) {
+            // Hilfsfunktion zur Ermittlung des aktuellen Hängers eines Bootes im Event
+            if (currentEv.trailerAssignments) {
+                for (const trailerId in currentEv.trailerAssignments) {
+                    const slots = currentEv.trailerAssignments[trailerId];
+                    for (const slotKey in slots) {
+                        if (slots[slotKey] === kidId) {
+                            const tr = appData.masterTrailers.find(t => t.id === trailerId);
+                            return tr ? esc(tr.name) : "anderem Hänger";
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        function assignKidToCar(carId, slotIdx, kidId) {
+            const ev = getActiveEvent();
+            if (!ev.carAssignments) ev.carAssignments = {};
+            const entry = ev.carAssignments[carId] = ev.carAssignments[carId] || { trailerId: null, passengers: [] };
+            const target = (entry.passengers || [])[slotIdx];   // Person, die bisher auf diesem Platz sitzt
+            if (kidId) {
+                // Doppelzuordnung verhindern: Person aus allen Autos entfernen
+                Object.values(ev.carAssignments).forEach(c => { c.passengers = (c.passengers || []).filter(id => id && id !== kidId); });
+                const list = entry.passengers;
+                const at = (target && target !== kidId) ? list.indexOf(target) : -1;
+                if (at !== -1) list[at] = kidId; else list.push(kidId);
+            } else {
+                entry.passengers = (entry.passengers || []).filter(id => id && id !== target);
+            }
+            saveData();
+        }
+
+        function assignBoatToTrailer(trailerId, level, pos, kidId) {
+            const ev = getActiveEvent();
+            if (!ev.trailerAssignments) ev.trailerAssignments = {};
+            if (!ev.trailerAssignments[trailerId]) ev.trailerAssignments[trailerId] = {};
+
+            const slotKey = `${level}-${pos}`;
+
+            // Verhinderung der Doppelzuordnung: Entferne Boot von allen Hängern des aktuellen Events
+            if (kidId) {
+                Object.keys(ev.trailerAssignments).forEach(tId => {
+                    Object.keys(ev.trailerAssignments[tId]).forEach(sKey => {
+                        if (ev.trailerAssignments[tId][sKey] === kidId) {
+                            delete ev.trailerAssignments[tId][sKey];
+                        }
+                    });
+                });
+                ev.trailerAssignments[trailerId][slotKey] = kidId;
+            } else {
+                delete ev.trailerAssignments[trailerId][slotKey];
+            }
+
+            saveData();
+        }
+
+        function assignTrailerToCar(carId, trailerId) {
+            const ev = getActiveEvent();
+            if (!ev.carAssignments) ev.carAssignments = {};
+            if (!ev.carAssignments[carId]) ev.carAssignments[carId] = { trailerId: null, passengers: [] };
+            // Ein Hänger kann nur an einem Auto hängen
+            if (trailerId) Object.values(ev.carAssignments).forEach(c => { if (c.trailerId === trailerId) c.trailerId = null; });
+            ev.carAssignments[carId].trailerId = trailerId || null;
+            saveData();
+        }
+
+        function renderLogistics() {
+            const ev = getActiveEvent();
+            const participatingKids = (ev.participatingKidIds || []).map(id => appData.masterKids.find(k => k.id === id)).filter(Boolean);
+
+            // 1. Unplatzierte Boote berechnen
+            let assignedBoatKidIds = [];
+            if (ev.trailerAssignments) {
+                Object.values(ev.trailerAssignments).forEach(slots => {
+                    Object.values(slots).forEach(kidId => { if(kidId) assignedBoatKidIds.push(kidId); });
+                });
+            }
+            const unassignedBoats = participatingKids.filter(k => !assignedBoatKidIds.includes(k.id));
+
+            const unassignedOptisContainer = document.getElementById('unassignedOptisList');
+            document.getElementById('unassignedOptisCount').textContent = unassignedBoats.length;
+            unassignedOptisContainer.innerHTML = '';
+
+            if (unassignedBoats.length === 0) {
+                unassignedOptisContainer.innerHTML = `<span class="text-xs text-emerald-400 italic">Alle Boote platziert!</span>`;
+            } else {
+                unassignedBoats.forEach(k => {
+                    unassignedOptisContainer.innerHTML += `
+                        <span class="text-xs bg-slate-900 text-slate-300 border border-slate-700 px-2.5 py-1 rounded-lg font-medium flex items-center gap-1">
+                            <i class="fa-solid fa-sailboat text-amber-400"></i> ${esc(k.firstName)} (${esc(k.sailNum)})
+                        </span>
+                    `;
+                });
+            }
+
+            // 2. Unplatzierte Personen berechnen
+            let assignedPersonKidIds = [];
+            if (ev.carAssignments) {
+                Object.values(ev.carAssignments).forEach(car => {
+                    (car.passengers || []).forEach(kidId => { if(kidId) assignedPersonKidIds.push(kidId); });
+                });
+            }
+            const unassignedPersons = participatingKids.filter(k => !assignedPersonKidIds.includes(k.id));
+
+            const unassignedKidsContainer = document.getElementById('unassignedKidsList');
+            document.getElementById('unassignedKidsCount').textContent = unassignedPersons.length;
+            unassignedKidsContainer.innerHTML = '';
+
+            if (unassignedPersons.length === 0) {
+                unassignedKidsContainer.innerHTML = `<span class="text-xs text-emerald-400 italic">Alle Personen untergebracht!</span>`;
+            } else {
+                unassignedPersons.forEach(k => {
+                    unassignedKidsContainer.innerHTML += `
+                        <span class="text-xs bg-slate-900 text-slate-300 border border-slate-700 px-2.5 py-1 rounded-lg font-medium flex items-center gap-1">
+                            <i class="fa-solid fa-user text-blue-400"></i> ${esc(k.firstName)} ${esc(k.lastName)} (${esc(k.group)})
+                        </span>
+                    `;
+                });
+            }
+
+            // 3. Hänger Grid Renders mit Optischem Feedback (Disabled + Ortsanzeige)
+            const trailersGrid = document.getElementById('trailersGrid');
+            trailersGrid.innerHTML = '';
+
+            appData.masterTrailers.forEach(tr => {
+                const slots = (ev.trailerAssignments && ev.trailerAssignments[tr.id]) ? ev.trailerAssignments[tr.id] : {};
+
+                let levelsHtml = '';
+                for (let l = tr.levels; l >= 1; l--) {
+                    let levelSlotsHtml = '';
+                    for (let p = 1; p <= tr.perLevel; p++) {
+                        const slotKey = `${l}-${p}`;
+                        const currentAssignedKidId = slots[slotKey] || "";
+
+                        let optionsHtml = `<option value="">-- Leer --</option>`;
+                        participatingKids.forEach(k => {
+                            const isCurrentSlot = (k.id === currentAssignedKidId);
+                            const boatLoc = getBoatLocation(k.id, ev);
+                            const isDisabled = (boatLoc !== null && !isCurrentSlot);
+
+                            let labelText = `${esc(k.firstName)} ${esc(k.lastName)} (${esc(k.sailNum)})`;
+                            if (isDisabled) {
+                                labelText += ` (auf ${boatLoc})`;
+                            }
+
+                            optionsHtml += `<option value="${k.id}" ${isCurrentSlot ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}>${labelText}</option>`;
+                        });
+
+                        levelSlotsHtml += `
+                            <div class="flex-1 bg-slate-900/90 p-2 rounded-xl border border-slate-700">
+                                <span class="text-[10px] text-slate-400 font-semibold block mb-1">Platz ${p}</span>
+                                <select onchange="assignBoatToTrailer('${tr.id}', ${l}, ${p}, this.value)" class="w-full bg-slate-800 text-xs font-medium text-white p-1.5 rounded-lg border border-slate-700 outline-none focus:ring-1 focus:ring-amber-500 truncate">
+                                    ${optionsHtml}
+                                </select>
+                            </div>
+                        `;
+                    }
+
+                    levelsHtml += `
+                        <div class="space-y-1">
+                            <span class="text-[10px] uppercase font-bold text-slate-400">Etage ${l}</span>
+                            <div class="flex gap-2">${levelSlotsHtml}</div>
+                        </div>
+                    `;
+                }
+
+                trailersGrid.innerHTML += `
+                    <div class="bg-slate-800/50 p-5 rounded-2xl border border-slate-700/60 shadow-xl space-y-4 backdrop-blur-md">
+                        <div class="flex items-center justify-between border-b border-slate-700 pb-3">
+                            <div>
+                                <h4 class="font-bold text-white text-sm">${esc(tr.name)}</h4>
+                                <span class="text-[10px] text-amber-400 font-semibold">Klasse: ${esc(tr.boatClass)} | Max ${tr.weight||1200}kg</span>
+                            </div>
+                            <div class="p-2 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30">
+                                <i class="fa-solid fa-trailer"></i>
+                            </div>
+                        </div>
+                        <div class="space-y-3">${levelsHtml}</div>
+                    </div>
+                `;
+            });
+
+            // 4. Autos Grid Renders mit Optischem Feedback (Disabled + Ortsanzeige)
+            const carsGrid = document.getElementById('carsGrid');
+            carsGrid.innerHTML = '';
+
+            appData.masterCars.forEach(car => {
+                const carEvState = ev.carAssignments ? ev.carAssignments[car.id] : null;
+                const assignedTrailerId = carEvState ? carEvState.trailerId : "";
+                const passengers = carEvState ? (carEvState.passengers || []) : [];
+
+                let trailerSelectHtml = `<option value="">-- Kein Hänger --</option>`;
+                appData.masterTrailers.forEach(tr => {
+                    trailerSelectHtml += `<option value="${tr.id}" ${tr.id === assignedTrailerId ? 'selected' : ''}>${esc(tr.name)}</option>`;
+                });
+
+                let passengersHtml = '';
+                for (let s = 0; s < car.seats; s++) {
+                    const currentAssignedKidId = passengers[s] || "";
+
+                    let optionsHtml = `<option value="">-- Freier Sitzplatz --</option>`;
+                    participatingKids.forEach(k => {
+                        const isCurrentSlot = (k.id === currentAssignedKidId);
+                        const kidLoc = getKidLocation(k.id, ev);
+                        const isDisabled = (kidLoc !== null && !isCurrentSlot);
+
+                        let labelText = `${esc(k.firstName)} ${esc(k.lastName)} (${esc(k.group)})`;
+                        if (isDisabled) {
+                            labelText += ` (in ${kidLoc})`;
+                        }
+
+                        optionsHtml += `<option value="${k.id}" ${isCurrentSlot ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}>${labelText}</option>`;
+                    });
+
+                    passengersHtml += `
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-slate-400 w-12 font-medium">Sitz ${s+1}:</span>
+                            <select onchange="assignKidToCar('${car.id}', ${s}, this.value)" class="flex-grow bg-slate-900 text-xs font-medium text-white p-2 rounded-xl border border-slate-700 outline-none focus:ring-1 focus:ring-blue-500 truncate">
+                                ${optionsHtml}
+                            </select>
+                        </div>
+                    `;
+                }
+
+                let ahkBadge = car.hasAHK ? `<span class="text-[10px] bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded font-semibold">AHK ${car.maxTow?car.maxTow+'kg':''}</span>` : '';
+
+                carsGrid.innerHTML += `
+                    <div class="bg-slate-800/50 p-5 rounded-2xl border border-slate-700/60 shadow-xl space-y-4 backdrop-blur-md">
+                        <div class="flex items-center justify-between border-b border-slate-700 pb-3">
+                            <div>
+                                <h4 class="font-bold text-white text-sm">${esc(car.name)}</h4>
+                                <div class="text-xs text-slate-400 mt-0.5">Fahrer: <span class="text-slate-200 font-semibold">${esc(car.driver)}</span></div>
+                            </div>
+                            ${ahkBadge}
+                        </div>
+
+                        ${car.hasAHK ? `
+                            <div>
+                                <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Gezogener Hänger</label>
+                                <select onchange="assignTrailerToCar('${car.id}', this.value)" class="w-full bg-slate-900 text-xs font-semibold text-amber-400 p-2 rounded-xl border border-slate-700 outline-none">
+                                    ${trailerSelectHtml}
+                                </select>
+                            </div>
+                        ` : ''}
+
+                        <div>
+                            <label class="block text-[10px] uppercase font-bold text-slate-400 mb-2">Mitfahrende Personen (${passengers.filter(Boolean).length}/${car.seats})</label>
+                            <div class="space-y-2">${passengersHtml}</div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function openCarModal(carId = null) {
+            document.getElementById('carForm').reset();
+            document.getElementById('carId').value = '';
+            document.getElementById('largeTrailerOptionContainer').classList.add('hidden');
+            document.getElementById('carModalTitle').textContent = 'Fahrzeug eintragen / bearbeiten';
+
+            if (carId) {
+                const c = appData.masterCars.find(item => item.id === carId);
+                if (c) {
+                    document.getElementById('carId').value = c.id;
+                    document.getElementById('carName').value = c.name;
+                    document.getElementById('carDriver').value = c.driver;
+                    document.getElementById('carSeats').value = c.seats;
+                    document.getElementById('carChildClass').value = c.childClass || 'Keine bestimmte';
+                    document.getElementById('carHasAHK').checked = !!c.hasAHK;
+                    document.getElementById('carMaxTow').value = c.maxTow || '';
+                    document.getElementById('carCanTowLargeTrailer').checked = !!c.canTowLargeTrailer;
+                    toggleAHKOptions();
+                    document.getElementById('carModalTitle').textContent = 'Fahrzeug bearbeiten';
+                }
+            }
+            document.getElementById('carModal').classList.remove('hidden');
+        }
+
+        function closeCarModal() {
+            document.getElementById('carModal').classList.add('hidden');
+        }
+
+        function toggleAHKOptions() {
+            const hasAHK = document.getElementById('carHasAHK').checked;
+            document.getElementById('largeTrailerOptionContainer').classList.toggle('hidden', !hasAHK);
+        }
+
+        function saveCar(e) {
+            e.preventDefault();
+            const id = document.getElementById('carId').value;
+            const newCar = {
+                id: id || 'c_' + Date.now(),
+                name: document.getElementById('carName').value,
+                driver: document.getElementById('carDriver').value,
+                seats: parseInt(document.getElementById('carSeats').value, 10),
+                childClass: document.getElementById('carChildClass').value,
+                hasAHK: document.getElementById('carHasAHK').checked,
+                maxTow: parseInt(document.getElementById('carMaxTow').value, 10) || 0,
+                canTowLargeTrailer: document.getElementById('carCanTowLargeTrailer').checked
+            };
+
+            if (id) {
+                const idx = appData.masterCars.findIndex(c => c.id === id);
+                if (idx !== -1) appData.masterCars[idx] = newCar;
+            } else {
+                appData.masterCars.push(newCar);
+            }
+
+            closeCarModal();
+            saveData();
+            showAlert("Fahrzeug gespeichert!", "success");
+        }
+
+        // 5. RIBS MODULE
+        function renderRibs() {
+            const grid = document.getElementById('ribsGrid');
+            grid.innerHTML = '';
+
+            appData.masterRibs.forEach(rib => {
+                grid.innerHTML += `
+                    <div class="bg-slate-800/50 p-5 rounded-2xl border border-slate-700/60 shadow-xl space-y-3 backdrop-blur-md">
+                        <div class="flex items-center justify-between">
+                            <h3 class="font-bold text-white text-base">${esc(rib.name)}</h3>
+                            <span class="p-2 bg-sky-500/20 text-sky-400 rounded-xl border border-sky-500/30"><i class="fa-solid fa-ship"></i></span>
+                        </div>
+                        <div class="text-xs text-slate-300 space-y-1">
+                            <div><span class="text-slate-400">Bootsführer:</span> ${esc(rib.driver)}</div>
+                            <div><span class="text-slate-400">Motorisierung:</span> ${esc(rib.motor)}</div>
+                            <div><span class="text-slate-400">Tankkapazität:</span> ${esc(rib.fuel)}</div>
+                            <div><span class="text-slate-400">UKW-Funk:</span> <span class="font-mono text-sky-400 font-semibold">${esc(rib.vhf)}</span></div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function openRibModal() {
+            if (!isCoach()) return;
+            document.getElementById('ribForm').reset();
+            document.getElementById('ribModal').classList.remove('hidden');
+        }
+
+        function closeRibModal() {
+            document.getElementById('ribModal').classList.add('hidden');
+        }
+
+        function saveRib(e) {
+            e.preventDefault();
+            if (!isCoach()) return;
+            const newRib = {
+                id: 'r_' + Date.now(),
+                name: document.getElementById('ribName').value,
+                driver: document.getElementById('ribDriver').value,
+                motor: document.getElementById('ribMotor').value,
+                fuel: document.getElementById('ribFuel').value,
+                vhf: document.getElementById('ribVHF').value
+            };
+            appData.masterRibs.push(newRib);
+            closeRibModal();
+            saveData();
+            showAlert("Begleitmotorboot angelegt!", "success");
+        }
+
+        // 6. CHECKLIST MODULE
+        function renderChecklist() {
+            const ev = getActiveEvent();
+            const container = document.getElementById('checklistCategoryContainer');
+            container.innerHTML = '';
+
+            const list = ev.checklist || [];
+            if (list.length === 0) {
+                container.innerHTML = `<div class="col-span-full p-8 text-center text-slate-400 text-sm bg-slate-800/30 rounded-2xl border border-slate-700/40">Keine Packlisten-Positionen für dieses Event hinterlegt.</div>`;
+                return;
+            }
+
+            const categories = {};
+            list.forEach(item => {
+                if (!categories[item.category]) categories[item.category] = [];
+                categories[item.category].push(item);
+            });
+
+            Object.keys(categories).forEach(cat => {
+                let itemsHtml = '';
+                categories[cat].forEach(item => {
+                    itemsHtml += `
+                        <label class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 cursor-pointer select-none">
+                            <span class="text-xs font-medium ${item.checked ? 'line-through text-slate-500' : 'text-slate-200'}">${esc(item.text)}</span>
+                            <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleCheckitem('${item.id}')" class="w-4 h-4 text-purple-600 rounded border-slate-700 bg-slate-900 focus:ring-purple-500">
+                        </label>
+                    `;
+                });
+
+                container.innerHTML += `
+                    <div class="bg-slate-800/50 p-5 rounded-2xl border border-slate-700/60 shadow-xl space-y-3 backdrop-blur-md">
+                        <h3 class="font-bold text-white text-sm border-b border-slate-700 pb-2 flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-purple-400"></i> ${esc(cat)}
+                        </h3>
+                        <div class="space-y-2">${itemsHtml}</div>
+                    </div>
+                `;
+            });
+        }
+
+        function toggleCheckitem(itemId) {
+            const ev = getActiveEvent();
+            const item = (ev.checklist || []).find(c => c.id === itemId);
+            if (item) {
+                item.checked = !item.checked;
+                saveData();
+            }
+        }
+
+        function openChecklistItemModal() {
+            if (!isCoach()) return;
+            document.getElementById('checklistItemForm').reset();
+            const ev = getActiveEvent();
+            const datalist = document.getElementById('existingCategories');
+            datalist.innerHTML = '';
+            
+            const cats = Array.from(new Set((ev.checklist || []).map(c => c.category)));
+            cats.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                datalist.appendChild(opt);
+            });
+
+            document.getElementById('checklistItemModal').classList.remove('hidden');
+        }
+
+        function closeChecklistItemModal() {
+            document.getElementById('checklistItemModal').classList.add('hidden');
+        }
+
+        function saveChecklistItem(e) {
+            e.preventDefault();
+            if (!isCoach()) return;
+            const ev = getActiveEvent();
+            if (!ev.checklist) ev.checklist = [];
+
+            const newItem = {
+                id: 'ch_' + Date.now(),
+                category: document.getElementById('checkItemCategory').value,
+                text: document.getElementById('checkItemText').value,
+                checked: false
+            };
+
+            ev.checklist.push(newItem);
+            closeChecklistItemModal();
+            saveData();
+            showAlert("Packlisten-Position hinzugefügt!", "success");
+        }
+
+        function resetChecklist() {
+            if (!isCoach()) return;
+            const ev = getActiveEvent();
+            if (confirm("Packliste für dieses Event zurücksetzen?")) {
+                ev.checklist = [];
+                saveData();
+                showAlert("Packliste zurückgesetzt.", "info");
+            }
+        }
+
+        // 7. MASTER DATA MODULE
+        function renderMasterData() {
+            // Segler Tabelle
+            const kidsTable = document.getElementById('masterKidsTable');
+            kidsTable.innerHTML = '';
+
+            appData.masterKids.forEach(k => {
+                kidsTable.innerHTML += `
+                    <tr class="hover:bg-slate-800/40">
+                        <td class="px-4 py-3 font-semibold text-white">${esc(k.firstName)} ${esc(k.lastName)}</td>
+                        <td class="px-4 py-3"><span class="text-xs bg-ocean-500/20 text-ocean-300 border border-ocean-500/30 px-2 py-0.5 rounded-full font-semibold">${esc(k.group)}</span></td>
+                        <td class="px-4 py-3 text-xs text-slate-300">${esc(k.role) || 'Einzelsegler'}</td>
+                        <td class="px-4 py-3 font-mono text-xs text-amber-400 font-bold">${esc(k.sailNum)}</td>
+                        <td class="px-4 py-3 text-xs text-slate-400">${esc(k.boatType)}</td>
+                        <td class="px-4 py-3 text-xs text-slate-300">${esc(k.phone) || '-'}</td>
+                        <td class="px-4 py-3 text-xs text-slate-400">${esc(k.email) || '-'}</td>
+                        <td class="px-4 py-3 text-right">
+                            <button onclick="openKidModal('${k.id}')" class="text-xs text-slate-400 hover:text-white mr-2"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="deleteKid('${k.id}')" class="text-xs text-rose-400 hover:text-rose-300"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            // Hänger Liste
+            const trailersList = document.getElementById('masterTrailersList');
+            trailersList.innerHTML = '';
+
+            appData.masterTrailers.forEach(t => {
+                trailersList.innerHTML += `
+                    <div class="flex items-center justify-between p-3 bg-slate-900/60 rounded-xl border border-slate-700/60 text-xs">
+                        <div>
+                            <span class="font-bold text-white block">${esc(t.name)}</span>
+                            <span class="text-slate-400">${esc(t.boatClass)} | ${t.levels} Etagen x ${t.perLevel} Boote | Max ${t.weight||1200}kg</span>
+                        </div>
+                        <button onclick="deleteTrailer('${t.id}')" class="text-rose-400 hover:text-rose-300 p-1"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                `;
+            });
+
+            // Autos Liste
+            const carsList = document.getElementById('masterCarsList');
+            carsList.innerHTML = '';
+
+            appData.masterCars.forEach(c => {
+                const childBadge = c.childClass ? `<span class="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded ml-2">Kind: ${esc(c.childClass)}</span>` : '';
+                carsList.innerHTML += `
+                    <div class="flex items-center justify-between p-3 bg-slate-900/60 rounded-xl border border-slate-700/60 text-xs">
+                        <div>
+                            <span class="font-bold text-white block">${esc(c.name)} (${esc(c.driver)}) ${childBadge}</span>
+                            <span class="text-slate-400">${c.seats} Plätze ${c.hasAHK ? '| AHK vorhanden' : ''}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="openCarModal('${c.id}')" class="text-slate-400 hover:text-white p-1"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="deleteCar('${c.id}')" class="text-rose-400 hover:text-rose-300 p-1"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // RIBs Liste
+            const ribsList = document.getElementById('masterRibsList');
+            ribsList.innerHTML = '';
+
+            appData.masterRibs.forEach(r => {
+                ribsList.innerHTML += `
+                    <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-700/60 text-xs space-y-1">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-white">${esc(r.name)}</span>
+                            <button onclick="deleteRib('${r.id}')" class="text-rose-400 hover:text-rose-300"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                        <div class="text-slate-400">Fahrer: ${esc(r.driver)}</div>
+                        <div class="text-slate-400">${esc(r.motor)} | Funk: <span class="text-sky-400 font-mono">${esc(r.vhf)}</span></div>
+                    </div>
+                `;
+            });
+        }
+
+        function openKidModal(kidId = null) {
+            if (!isCoach()) return;
+            document.getElementById('kidForm').reset();
+            document.getElementById('kidId').value = '';
+            document.getElementById('kidModalTitle').textContent = 'Segler/in im Stammkader anlegen';
+
+            if (kidId) {
+                const k = appData.masterKids.find(item => item.id === kidId);
+                if (k) {
+                    document.getElementById('kidId').value = k.id;
+                    document.getElementById('kidFirstName').value = k.firstName;
+                    document.getElementById('kidLastName').value = k.lastName;
+                    document.getElementById('kidGroup').value = k.group;
+                    document.getElementById('kidRole').value = k.role || 'Einzelsegler';
+                    document.getElementById('kidSailNum').value = k.sailNum;
+                    document.getElementById('kidBoatType').value = k.boatType;
+                    document.getElementById('kidPhone').value = k.phone || '';
+                    document.getElementById('kidEmail').value = k.email || '';
+                    document.getElementById('kidModalTitle').textContent = 'Segler/in bearbeiten';
+                }
+            }
+            document.getElementById('kidModal').classList.remove('hidden');
+        }
+
+        function closeKidModal() {
+            document.getElementById('kidModal').classList.add('hidden');
+        }
+
+        function saveKid(e) {
+            e.preventDefault();
+            if (!isCoach()) return;
+            const id = document.getElementById('kidId').value;
+            const newKid = {
+                id: id || 'k_' + Date.now(),
+                firstName: document.getElementById('kidFirstName').value,
+                lastName: document.getElementById('kidLastName').value,
+                group: document.getElementById('kidGroup').value,
+                role: document.getElementById('kidRole').value,
+                sailNum: document.getElementById('kidSailNum').value,
+                boatType: document.getElementById('kidBoatType').value,
+                phone: document.getElementById('kidPhone').value,
+                email: document.getElementById('kidEmail').value
+            };
+
+            if (id) {
+                const idx = appData.masterKids.findIndex(k => k.id === id);
+                if (idx !== -1) appData.masterKids[idx] = newKid;
+            } else {
+                appData.masterKids.push(newKid);
+            }
+
+            closeKidModal();
+            saveData();
+            showAlert("Segler/in im Kader gespeichert!", "success");
+        }
+
+        function deleteKid(kidId) {
+            if (!isCoach()) return;
+            if (confirm("Segler wirklich aus dem Stammkader löschen?")) {
+                appData.masterKids = appData.masterKids.filter(k => k.id !== kidId);
+                saveData();
+                showAlert("Segler gelöscht.", "info");
+            }
+        }
+
+        function openTrailerModal() {
+            if (!isCoach()) return;
+            document.getElementById('trailerForm').reset();
+            document.getElementById('trailerModal').classList.remove('hidden');
+        }
+
+        function closeTrailerModal() {
+            document.getElementById('trailerModal').classList.add('hidden');
+        }
+
+        function saveTrailer(e) {
+            e.preventDefault();
+            if (!isCoach()) return;
+            const newTr = {
+                id: 't_' + Date.now(),
+                name: document.getElementById('trailerName').value,
+                boatClass: document.getElementById('trailerBoatClass').value,
+                weight: parseInt(document.getElementById('trailerWeight').value, 10) || 1200,
+                levels: parseInt(document.getElementById('trailerLevels').value, 10),
+                perLevel: parseInt(document.getElementById('trailerPerLevel').value, 10)
+            };
+
+            appData.masterTrailers.push(newTr);
+            closeTrailerModal();
+            saveData();
+            showAlert("Hänger im Stammregister angelegt!", "success");
+        }
+
+        function deleteTrailer(trailerId) {
+            if (!isCoach()) return;
+            if (confirm("Hänger wirklich aus der Stammflotte löschen?")) {
+                appData.masterTrailers = appData.masterTrailers.filter(t => t.id !== trailerId);
+                saveData();
+                showAlert("Hänger gelöscht.", "info");
+            }
+        }
+
+        function deleteCar(carId) {
+            if (confirm("Fahrzeug wirklich entfernen?")) {
+                appData.masterCars = appData.masterCars.filter(c => c.id !== carId);
+                saveData();
+                showAlert("Fahrzeug gelöscht.", "info");
+            }
+        }
+
+        function deleteRib(ribId) {
+            if (!isCoach()) return;
+            if (confirm("Begleitmotorboot wirklich aus der Flotte löschen?")) {
+                appData.masterRibs = appData.masterRibs.filter(r => r.id !== ribId);
+                saveData();
+                showAlert("Motorboot gelöscht.", "info");
+            }
+        }
+    </script>
+</body>
+</html>
