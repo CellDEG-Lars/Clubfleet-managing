@@ -370,7 +370,7 @@
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h2 class="text-xl font-bold text-white">Begleitmotorboote (RIBs) & Wasser-Logistik</h2>
-                    <p class="text-xs text-slate-400">Sicherheitsboote, Funk, Treibstoff & Transport-Trailer</p>
+                    <p class="text-xs text-slate-400">Sicherheitsboote, Trainer-Zuteilung pro Event & Treibstoff</p>
                 </div>
             </div>
             <div id="ribsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
@@ -472,11 +472,43 @@
                 </div>
                 <div id="masterRibsList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
             </div>
+
+            <div class="bg-slate-800/40 p-6 rounded-2xl border border-slate-700/60 shadow-xl space-y-4 backdrop-blur-md">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-bold text-white text-base flex items-center gap-2">
+                        <i class="fa-solid fa-user-tie text-emerald-400"></i> Trainer-Datenbank
+                    </h3>
+                    <button onclick="openCoachModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-3 py-1.5 rounded-xl text-xs shadow transition flex items-center gap-1">
+                        <i class="fa-solid fa-plus"></i> Trainer Anlegen
+                    </button>
+                </div>
+                <div id="masterCoachesList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
+            </div>
         </div>
 
     </main>
 
     <!-- MODALS SECTION -->
+
+    <!-- ZUGANGS-SPERRE (Vereinspasswort) -->
+    <div id="accessGate" class="fixed inset-0 bg-slate-950 hidden flex items-center justify-center p-4" style="z-index:100">
+        <div class="bg-slate-800 rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-700 text-slate-100">
+            <div class="text-center mb-4">
+                <div class="w-12 h-12 bg-ocean-500/20 text-ocean-300 border border-ocean-500/30 rounded-2xl flex items-center justify-center mx-auto mb-3 text-xl">
+                    <i class="fa-solid fa-anchor"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white">ClubFleet – Vereinszugang</h3>
+                <p class="text-xs text-slate-400 mt-1">Bitte gib das Passwort ein, das du vom Verein erhalten hast.</p>
+            </div>
+            <form onsubmit="verifyAccess(event)" class="space-y-4">
+                <div>
+                    <input type="password" id="accessPasswordInput" required autocomplete="current-password" placeholder="Passwort" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white outline-none focus:ring-2 focus:ring-ocean-500">
+                    <p id="accessError" class="text-rose-400 text-xs mt-1.5 hidden"><i class="fa-solid fa-circle-exclamation"></i> Passwort ist falsch.</p>
+                </div>
+                <button type="submit" class="w-full py-2 text-sm bg-ocean-600 hover:bg-ocean-500 text-white font-bold rounded-xl shadow">Anmelden</button>
+            </form>
+        </div>
+    </div>
 
     <!-- COACH AUTH MODAL -->
     <div id="coachAuthModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
@@ -499,6 +531,28 @@
                 <div class="flex gap-2">
                     <button type="button" onclick="closeCoachAuthModal()" class="w-1/2 py-2 text-sm text-slate-400 hover:bg-slate-700 rounded-xl font-medium">Abbrechen</button>
                     <button type="submit" class="w-1/2 py-2 text-sm bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl shadow">Freischalten</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- TRAINER MODAL -->
+    <div id="coachModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-700 text-slate-100">
+            <h3 id="coachModalTitle" class="text-lg font-bold text-white mb-4">Trainer anlegen</h3>
+            <form id="coachForm" onsubmit="saveCoach(event)" class="space-y-4">
+                <input type="hidden" id="coachId">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Name *</label>
+                    <input type="text" id="coachName" placeholder="z.B. Lars Bähr" required class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Telefon</label>
+                    <input type="text" id="coachPhone" placeholder="z.B. 0171 1234567" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeCoachModal()" class="px-4 py-2 text-sm text-slate-400 hover:bg-slate-700 rounded-xl">Abbrechen</button>
+                    <button type="submit" class="px-4 py-2 text-sm bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-semibold shadow">Speichern</button>
                 </div>
             </form>
         </div>
@@ -773,22 +827,12 @@
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1">Fahrer / Coach *</label>
-                        <input type="text" id="ribDriver" placeholder="Bootsführer" required class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
-                    </div>
-                    <div>
                         <label class="block text-xs font-semibold text-slate-300 mb-1">Motor</label>
                         <input type="text" id="ribMotor" placeholder="z.B. 90 PS Yamaha" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
                     </div>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-semibold text-slate-300 mb-1">Treibstoff Tank</label>
                         <input type="text" id="ribFuel" placeholder="z.B. 70L Einbautank" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1">UKW Funk Rufzeichen</label>
-                        <input type="text" id="ribVHF" placeholder="z.B. DL1234" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
                     </div>
                 </div>
                 <div class="flex justify-end gap-2 pt-2">
@@ -824,6 +868,7 @@
     <!-- LOGIC & APPLICATION CODE -->
     <script>
         const COACH_PASSWORD = "trainer2026";
+        const PARENT_PASSWORD = "PYC2026";
 
         const INITIAL_DATA = {
             currentUserRole: "parent",
@@ -851,8 +896,12 @@
                 { id: "c3", name: "Audi A6 Avant (KI-AB 88)", driver: "Frau Meyer (Eltern)", seats: 3, childClass: "Opti A", hasAHK: true, maxTow: 2000, canTowLargeTrailer: true }
             ],
             masterRibs: [
-                { id: "r1", name: "Coach RIB 1 - Tornado 5.8m", driver: "Lars Bähr", motor: "90 PS Yamaha", fuel: "70L Einbautank", vhf: "DL-COACH1" },
-                { id: "r2", name: "Support RIB 2 - Highfield 4.6m", driver: "Arne (Co-Trainer)", motor: "50 PS Honda", fuel: "2x 25L Tanks", vhf: "DL-COACH2" }
+                { id: "r1", name: "Coach RIB 1 - Tornado 5.8m", motor: "90 PS Yamaha", fuel: "70L Einbautank" },
+                { id: "r2", name: "Support RIB 2 - Highfield 4.6m", motor: "50 PS Honda", fuel: "2x 25L Tanks" }
+            ],
+            masterCoaches: [
+                { id: "co1", name: "Lars Bähr", phone: "" },
+                { id: "co2", name: "Arne (Co-Trainer)", phone: "" }
             ],
 
             events: [
@@ -932,9 +981,10 @@
         const FIREBASE_DB_URL = "https://club-flottenlogistik-default-rtdb.europe-west1.firebasedatabase.app";
         const SYNC_ENABLED = !!FIREBASE_DB_URL;
         const DB_PATH = FIREBASE_DB_URL.replace(/\/+$/, '') + '/clubfleet.json';
-        const SHARED_KEYS = ['masterKids', 'masterTrailers', 'masterCars', 'masterRibs', 'events'];
+        const SHARED_KEYS = ['masterKids', 'masterTrailers', 'masterCars', 'masterRibs', 'masterCoaches', 'events'];
+        let legacyMigrated = false;
         const syncState = { inFlight: false, dirty: false, needPull: false, version: 0, last: {} };
-        const EMPTY_EVENT = { id: '', name: 'Kein Event vorhanden', type: '', status: '', boatClass: '', location: '', startDate: '', endDate: '', coach: '', notes: '', participatingKidIds: [], participatingRibIds: [], trailerAssignments: {}, carAssignments: {}, checklist: [] };
+        const EMPTY_EVENT = { id: '', name: 'Kein Event vorhanden', type: '', status: '', boatClass: '', location: '', startDate: '', endDate: '', coach: '', notes: '', participatingKidIds: [], participatingRibIds: [], ribCoaches: {}, trailerAssignments: {}, carAssignments: {}, checklist: [] };
         let alertTimer = null;
 
         function esc(v) {
@@ -946,6 +996,11 @@
         function stable(v) {
             return JSON.stringify(v, (k, x) => (x && typeof x === 'object' && !Array.isArray(x)) ? Object.keys(x).sort().reduce((o, key) => (o[key] = x[key], o), {}) : x);
         }
+        function hashId(s) {
+            let h = 0;
+            for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) | 0;
+            return Math.abs(h).toString(36);
+        }
         function toArr(v) {
             return Array.isArray(v) ? v.filter(x => x != null) : (v && typeof v === 'object' ? Object.values(v) : []);
         }
@@ -953,7 +1008,17 @@
         function normalizeShared(d) {
             const out = {};
             SHARED_KEYS.forEach(k => { out[k] = toArr(d && d[k]); });
+            // Migration: früher hatte jedes Motorboot einen festen Fahrer und ein Funk-Feld
+            out.masterRibs.forEach(r => {
+                if ('driver' in r || 'vhf' in r) {
+                    const nm = String(r.driver || '').trim();
+                    if (nm && !out.masterCoaches.some(c => c.name === nm)) out.masterCoaches.push({ id: 'co_' + hashId(nm), name: nm, phone: '' });
+                    delete r.driver; delete r.vhf;
+                    legacyMigrated = true;
+                }
+            });
             out.events.forEach(ev => {
+                ev.ribCoaches = ev.ribCoaches || {};
                 ev.participatingKidIds = toArr(ev.participatingKidIds);
                 ev.participatingRibIds = toArr(ev.participatingRibIds);
                 ev.trailerAssignments = ev.trailerAssignments || {};
@@ -992,7 +1057,10 @@
             const ribIds = new Set(appData.masterRibs.map(r => r.id));
             const trailers = {}; appData.masterTrailers.forEach(t => { trailers[t.id] = t; });
             const cars = {}; appData.masterCars.forEach(c => { cars[c.id] = c; });
+            const coachIds = new Set(appData.masterCoaches.map(c => c.id));
             appData.events.forEach(ev => {
+                ev.ribCoaches = ev.ribCoaches || {};
+                Object.keys(ev.ribCoaches).forEach(rid => { if (!ribIds.has(rid) || !coachIds.has(ev.ribCoaches[rid])) delete ev.ribCoaches[rid]; });
                 ev.participatingKidIds = (ev.participatingKidIds || []).filter((id, i, a) => kidIds.has(id) && a.indexOf(id) === i);
                 ev.participatingRibIds = (ev.participatingRibIds || []).filter((id, i, a) => ribIds.has(id) && a.indexOf(id) === i);
                 const part = new Set(ev.participatingKidIds);
@@ -1059,6 +1127,7 @@
                 const raw = await res.json();
                 if (v !== syncState.version || syncState.inFlight) { syncState.needPull = true; return; }
                 if (raw === null) { syncState.last = {}; remotePush(); return; }   // leere Datenbank: lokale Daten hochladen
+                legacyMigrated = false;
                 const norm = normalizeShared(raw);
                 let changed = false;
                 SHARED_KEYS.forEach(k => {
@@ -1066,6 +1135,12 @@
                     if (s !== stable(appData[k])) { appData[k] = norm[k]; changed = true; }
                     syncState.last[k] = s;
                 });
+                if (legacyMigrated) {
+                    legacyMigrated = false;
+                    syncState.last.masterRibs = null; syncState.last.masterCoaches = null;
+                    changed = true;
+                    setTimeout(remotePush, 0);
+                }
                 setSyncBadge(true);
                 if (changed) {
                     if (!appData.events.some(e => e.id === appData.activeEventId) && appData.events[0]) appData.activeEventId = appData.events[0].id;
@@ -1094,14 +1169,42 @@
             document.addEventListener('visibilitychange', () => { if (!document.hidden) remotePull(); });
         }
 
-        window.onload = function() {
-            loadData();
+        function hasAccess() {
+            try {
+                return sessionStorage.getItem('clubfleet_coach_authenticated') === 'true' || localStorage.getItem('clubfleet_access') === PARENT_PASSWORD;
+            } catch (e) { return false; }
+        }
+
+        function startApp() {
             if (sessionStorage.getItem('clubfleet_coach_authenticated') === 'true') {
                 appData.currentUserRole = 'coach';
             }
             applyRolePermissions();
             renderAllViews();
             initSync();
+        }
+
+        function verifyAccess(e) {
+            e.preventDefault();
+            const p = document.getElementById('accessPasswordInput').value.trim();
+            if (p === COACH_PASSWORD) {
+                sessionStorage.setItem('clubfleet_coach_authenticated', 'true');
+            } else if (p !== PARENT_PASSWORD) {
+                document.getElementById('accessError').classList.remove('hidden');
+                return;
+            }
+            try { localStorage.setItem('clubfleet_access', PARENT_PASSWORD); } catch (err) {}
+            document.getElementById('accessGate').classList.add('hidden');
+            startApp();
+        }
+
+        window.onload = function() {
+            loadData();
+            if (!hasAccess()) {
+                document.getElementById('accessGate').classList.remove('hidden');
+                return;
+            }
+            startApp();
         };
 
         function loadData() {
@@ -1193,7 +1296,10 @@
         function resetDataConfirmation() {
             if (!isCoach()) return;
             if (confirm("ACHTUNG: Alle Daten werden auf die Beispieldaten zurückgesetzt" + (SYNC_ENABLED ? " – für ALLE Nutzer (Trainer & Eltern)!" : ".") + " Fortfahren?")) {
-                appData = JSON.parse(JSON.stringify(INITIAL_DATA));
+                const keepRole = appData.currentUserRole;
+                const fresh = JSON.parse(JSON.stringify(INITIAL_DATA));
+                appData = Object.assign(fresh, normalizeShared(fresh));
+                appData.currentUserRole = keepRole;
                 saveData();
                 showAlert("Saisondaten wiederhergestellt!", "success");
             }
@@ -1253,7 +1359,7 @@
                 try { fn(); } catch (err) { console.error('Render-Fehler in ' + fn.name + ':', err); }
             });
             if (!isCoach()) {
-                document.querySelectorAll('#view-participants input[type=checkbox], #trailersGrid select, #carsGrid select').forEach(el => { el.disabled = true; });
+                document.querySelectorAll('#view-participants input[type=checkbox], #trailersGrid select, #carsGrid select, #ribsGrid select').forEach(el => { el.disabled = true; });
             }
         }
 
@@ -1475,6 +1581,7 @@
                 notes: document.getElementById('eventInputNotes').value,
                 participatingKidIds: existingEv ? (existingEv.participatingKidIds || []) : appData.masterKids.map(k=>k.id),
                 participatingRibIds: existingEv ? (existingEv.participatingRibIds || []) : appData.masterRibs.map(r=>r.id),
+                ribCoaches: existingEv ? (existingEv.ribCoaches || {}) : {},
                 trailerAssignments: existingEv ? (existingEv.trailerAssignments || {}) : {},
                 carAssignments: existingEv ? (existingEv.carAssignments || {}) : {},
                 checklist: existingEv ? (existingEv.checklist || []) : []
@@ -1709,7 +1816,7 @@
                     <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleParticipantRib('${rib.id}')" class="w-4 h-4 text-sky-500 rounded border-slate-700 bg-slate-900 focus:ring-sky-500">
                     <div class="text-xs">
                         <div class="font-bold ${isChecked ? 'text-sky-300' : 'text-slate-300'}">${esc(rib.name)}</div>
-                        <div class="text-[10px] text-slate-400">Fahrer: ${esc(rib.driver)} | ${esc(rib.motor)}</div>
+                        <div class="text-[10px] text-slate-400">${esc(rib.motor)}${ribCoachName(ev, rib.id) ? ' | Trainer: ' + esc(ribCoachName(ev, rib.id)) : ''}</div>
                     </div>
                 `;
                 ribsContainer.appendChild(item);
@@ -2072,26 +2179,56 @@
         }
 
         // 5. RIBS MODULE
-        function renderRibs() {
-            const grid = document.getElementById('ribsGrid');
-            grid.innerHTML = '';
+        function ribCoachName(ev, ribId) {
+            const id = (ev.ribCoaches || {})[ribId];
+            const c = id ? appData.masterCoaches.find(x => x.id === id) : null;
+            return c ? c.name : '';
+        }
 
-            appData.masterRibs.forEach(rib => {
-                grid.innerHTML += `
+        function renderRibs() {
+            const ev = getActiveEvent();
+            const grid = document.getElementById('ribsGrid');
+            const inEventIds = ev.participatingRibIds || [];
+            const used = {};
+            Object.keys(ev.ribCoaches || {}).forEach(rid => {
+                if (inEventIds.includes(rid)) used[ev.ribCoaches[rid]] = (used[ev.ribCoaches[rid]] || 0) + 1;
+            });
+
+            grid.innerHTML = appData.masterRibs.map(rib => {
+                const inEvent = inEventIds.includes(rib.id);
+                const cur = (ev.ribCoaches || {})[rib.id] || '';
+                const opts = '<option value="">— kein Trainer zugewiesen —</option>' + appData.masterCoaches.map(c =>
+                    `<option value="${esc(c.id)}" ${c.id === cur ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
+                const warn = (cur && used[cur] > 1) ? '<div class="text-[10px] text-amber-400"><i class="fa-solid fa-triangle-exclamation"></i> Dieser Trainer ist im Event auf mehreren Booten eingeplant.</div>' : '';
+                const noCoaches = appData.masterCoaches.length === 0 ? '<div class="text-[10px] text-slate-400">Noch keine Trainer angelegt (Stammdaten → Trainer-Datenbank).</div>' : '';
+                const trainerBlock = inEvent
+                    ? `<div class="pt-2 border-t border-slate-700/60 space-y-1">
+                            <label class="block text-[10px] uppercase font-bold text-slate-400">Trainer im Event „${esc(ev.name)}“</label>
+                            <select onchange="assignCoachToRib('${rib.id}', this.value)" class="w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white">${opts}</select>
+                            ${warn}${noCoaches}
+                       </div>`
+                    : '<div class="pt-2 border-t border-slate-700/60 text-[11px] text-slate-500">Für dieses Event nicht eingeplant.</div>';
+                return `
                     <div class="bg-slate-800/50 p-5 rounded-2xl border border-slate-700/60 shadow-xl space-y-3 backdrop-blur-md">
                         <div class="flex items-center justify-between">
                             <h3 class="font-bold text-white text-base">${esc(rib.name)}</h3>
                             <span class="p-2 bg-sky-500/20 text-sky-400 rounded-xl border border-sky-500/30"><i class="fa-solid fa-ship"></i></span>
                         </div>
                         <div class="text-xs text-slate-300 space-y-1">
-                            <div><span class="text-slate-400">Bootsführer:</span> ${esc(rib.driver)}</div>
                             <div><span class="text-slate-400">Motorisierung:</span> ${esc(rib.motor)}</div>
                             <div><span class="text-slate-400">Tankkapazität:</span> ${esc(rib.fuel)}</div>
-                            <div><span class="text-slate-400">UKW-Funk:</span> <span class="font-mono text-sky-400 font-semibold">${esc(rib.vhf)}</span></div>
                         </div>
-                    </div>
-                `;
-            });
+                        ${trainerBlock}
+                    </div>`;
+            }).join('');
+        }
+
+        function assignCoachToRib(ribId, coachId) {
+            if (!isCoach()) return;
+            const ev = getActiveEvent();
+            if (!ev.ribCoaches) ev.ribCoaches = {};
+            if (coachId) ev.ribCoaches[ribId] = coachId; else delete ev.ribCoaches[ribId];
+            saveData();
         }
 
         function openRibModal() {
@@ -2110,10 +2247,8 @@
             const newRib = {
                 id: 'r_' + Date.now(),
                 name: document.getElementById('ribName').value,
-                driver: document.getElementById('ribDriver').value,
                 motor: document.getElementById('ribMotor').value,
-                fuel: document.getElementById('ribFuel').value,
-                vhf: document.getElementById('ribVHF').value
+                fuel: document.getElementById('ribFuel').value
             };
             appData.masterRibs.push(newRib);
             closeRibModal();
@@ -2280,6 +2415,20 @@
                 `;
             });
 
+            // Trainer Liste
+            const coachesList = document.getElementById('masterCoachesList');
+            coachesList.innerHTML = appData.masterCoaches.length ? appData.masterCoaches.map(c => `
+                    <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-700/60 text-xs flex items-center justify-between">
+                        <div>
+                            <span class="font-bold text-white block">${esc(c.name)}</span>
+                            <span class="text-slate-400">${esc(c.phone) || '-'}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="openCoachModal('${c.id}')" class="text-slate-400 hover:text-white p-1"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="deleteCoach('${c.id}')" class="text-rose-400 hover:text-rose-300 p-1"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>`).join('') : '<div class="text-xs text-slate-400">Noch keine Trainer angelegt.</div>';
+
             // RIBs Liste
             const ribsList = document.getElementById('masterRibsList');
             ribsList.innerHTML = '';
@@ -2291,8 +2440,7 @@
                             <span class="font-bold text-white">${esc(r.name)}</span>
                             <button onclick="deleteRib('${r.id}')" class="text-rose-400 hover:text-rose-300"><i class="fa-solid fa-trash"></i></button>
                         </div>
-                        <div class="text-slate-400">Fahrer: ${esc(r.driver)}</div>
-                        <div class="text-slate-400">${esc(r.motor)} | Funk: <span class="text-sky-400 font-mono">${esc(r.vhf)}</span></div>
+                        <div class="text-slate-400">${esc(r.motor) || '-'} | Tank: ${esc(r.fuel) || '-'}</div>
                     </div>
                 `;
             });
@@ -2414,6 +2562,51 @@
                 appData.masterRibs = appData.masterRibs.filter(r => r.id !== ribId);
                 saveData();
                 showAlert("Motorboot gelöscht.", "info");
+            }
+        }
+
+        // 8. TRAINER-DATENBANK
+        function openCoachModal(coachId = null) {
+            if (!isCoach()) return;
+            document.getElementById('coachForm').reset();
+            document.getElementById('coachId').value = '';
+            document.getElementById('coachModalTitle').textContent = 'Trainer anlegen';
+            const c = coachId ? appData.masterCoaches.find(x => x.id === coachId) : null;
+            if (c) {
+                document.getElementById('coachId').value = c.id;
+                document.getElementById('coachName').value = c.name;
+                document.getElementById('coachPhone').value = c.phone || '';
+                document.getElementById('coachModalTitle').textContent = 'Trainer bearbeiten';
+            }
+            document.getElementById('coachModal').classList.remove('hidden');
+        }
+
+        function closeCoachModal() {
+            document.getElementById('coachModal').classList.add('hidden');
+        }
+
+        function saveCoach(e) {
+            e.preventDefault();
+            if (!isCoach()) return;
+            const id = document.getElementById('coachId').value;
+            const coach = {
+                id: id || 'co_' + Date.now(),
+                name: document.getElementById('coachName').value.trim(),
+                phone: document.getElementById('coachPhone').value.trim()
+            };
+            const idx = id ? appData.masterCoaches.findIndex(c => c.id === id) : -1;
+            if (idx !== -1) appData.masterCoaches[idx] = coach; else appData.masterCoaches.push(coach);
+            closeCoachModal();
+            saveData();
+            showAlert("Trainer gespeichert!", "success");
+        }
+
+        function deleteCoach(coachId) {
+            if (!isCoach()) return;
+            if (confirm("Trainer wirklich löschen? Seine Zuweisungen zu Motorbooten werden in allen Events entfernt.")) {
+                appData.masterCoaches = appData.masterCoaches.filter(c => c.id !== coachId);
+                saveData();
+                showAlert("Trainer gelöscht.", "info");
             }
         }
     </script>
