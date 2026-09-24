@@ -236,6 +236,18 @@
                 </div>
             </div>
 
+            <div id="dashInfoCard" class="hidden bg-slate-800/50 p-5 rounded-2xl border border-slate-700/60 shadow-xl backdrop-blur-md space-y-4">
+                <div id="dashNotesWrap">
+                    <h3 class="font-bold text-white text-sm flex items-center gap-2 mb-2"><i class="fa-solid fa-location-dot text-rose-400"></i> Treffpunkt & Notizen</h3>
+                    <p id="dashNotes" class="text-sm text-slate-200 whitespace-pre-line"></p>
+                </div>
+                <div id="dashLinkWrap">
+                    <a id="dashOrganizerLink" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 text-xs font-semibold text-ocean-300 hover:text-ocean-200 bg-ocean-500/10 border border-ocean-500/30 px-3 py-1.5 rounded-xl">
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i> <span>Website des Veranstalters</span>
+                    </a>
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div class="bg-slate-800/50 p-5 rounded-2xl border border-slate-700/60 shadow-xl backdrop-blur-md flex flex-col justify-between">
                     <div>
@@ -315,6 +327,22 @@
                         <span id="selectedCoachesCountBadge" class="text-xs bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2.5 py-0.5 rounded-full font-bold">0 ausgewählt</span>
                     </h3>
                     <div id="participantsCoachesGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
+                </div>
+
+                <div>
+                    <h3 class="text-sm font-bold text-slate-200 uppercase tracking-wider mb-3 flex items-center justify-between border-b border-slate-700 pb-2">
+                        <span>Hänger im Event</span>
+                        <span id="selectedTrailersCountBadge" class="text-xs bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2.5 py-0.5 rounded-full font-bold">0 ausgewählt</span>
+                    </h3>
+                    <div id="participantsTrailersGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
+                </div>
+
+                <div>
+                    <h3 class="text-sm font-bold text-slate-200 uppercase tracking-wider mb-3 flex items-center justify-between border-b border-slate-700 pb-2">
+                        <span>Autos im Event</span>
+                        <span id="selectedCarsCountBadge" class="text-xs bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2.5 py-0.5 rounded-full font-bold">0 ausgewählt</span>
+                    </h3>
+                    <div id="participantsCarsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
                 </div>
 
 
@@ -555,6 +583,10 @@
                     <input type="text" id="coachName" placeholder="z.B. Lars Bähr" required class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
                 </div>
                 <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">E-Mail *</label>
+                    <input type="email" id="coachEmail" required placeholder="z.B. trainer@verein.de" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                </div>
+                <div>
                     <label class="block text-xs font-semibold text-slate-300 mb-1">Telefon</label>
                     <input type="text" id="coachPhone" placeholder="z.B. 0171 1234567" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
                 </div>
@@ -620,6 +652,10 @@
                         <label class="block text-xs font-semibold text-slate-300 mb-1">Enddatum *</label>
                         <input type="date" id="eventInputEndDate" required class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white outline-none focus:ring-2 focus:ring-ocean-500">
                     </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Link zum Veranstalter *</label>
+                    <input type="url" id="eventInputUrl" required placeholder="https://www.veranstalter.de" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white outline-none focus:ring-2 focus:ring-ocean-500">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-300 mb-1">Verantwortlicher Trainer</label>
@@ -908,8 +944,8 @@
                 { id: "r2", name: "Support RIB 2 - Highfield 4.6m", motor: "50 PS Honda", fuel: "2x 25L Tanks" }
             ],
             masterCoaches: [
-                { id: "co1", name: "Lars Bähr", phone: "" },
-                { id: "co2", name: "Arne (Co-Trainer)", phone: "" }
+                { id: "co1", name: "Lars Bähr", phone: "", email: "" },
+                { id: "co2", name: "Arne (Co-Trainer)", phone: "", email: "" }
             ],
 
             events: [
@@ -992,9 +1028,15 @@
         const SHARED_KEYS = ['masterKids', 'masterTrailers', 'masterCars', 'masterRibs', 'masterCoaches', 'events'];
         let legacyMigrated = false;
         const syncState = { inFlight: false, dirty: false, needPull: false, version: 0, last: {} };
-        const EMPTY_EVENT = { id: '', name: 'Kein Event vorhanden', type: '', status: '', boatClass: '', location: '', startDate: '', endDate: '', coach: '', notes: '', participatingKidIds: [], participatingRibIds: [], participatingCoachIds: [], ribCoaches: {}, trailerAssignments: {}, carAssignments: {}, checklist: [] };
+        const EMPTY_EVENT = { id: '', name: 'Kein Event vorhanden', type: '', status: '', boatClass: '', location: '', startDate: '', endDate: '', coach: '', notes: '', participatingKidIds: [], participatingRibIds: [], participatingCoachIds: [], participatingTrailerIds: [], participatingCarIds: [], ribCoaches: {}, trailerAssignments: {}, carAssignments: {}, checklist: [] };
         let alertTimer = null;
 
+        function safeUrl(u) {
+            try {
+                const x = new URL(String(u || '').trim());
+                return (x.protocol === 'http:' || x.protocol === 'https:') ? x.href : '';
+            } catch (e) { return ''; }
+        }
         function esc(v) {
             return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
         }
@@ -1020,7 +1062,7 @@
             out.masterRibs.forEach(r => {
                 if ('driver' in r || 'vhf' in r) {
                     const nm = String(r.driver || '').trim();
-                    if (nm && !out.masterCoaches.some(c => c.name === nm)) out.masterCoaches.push({ id: 'co_' + hashId(nm), name: nm, phone: '' });
+                    if (nm && !out.masterCoaches.some(c => c.name === nm)) out.masterCoaches.push({ id: 'co_' + hashId(nm), name: nm, phone: '', email: '' });
                     delete r.driver; delete r.vhf;
                     legacyMigrated = true;
                 }
@@ -1029,6 +1071,12 @@
                 ev.ribCoaches = ev.ribCoaches || {};
                 // Migration: bisher zugewiesene Boots-Trainer gelten automatisch als Event-Trainer
                 ev.participatingCoachIds = ev.participatingCoachIds === undefined ? [...new Set(Object.values(ev.ribCoaches))] : toArr(ev.participatingCoachIds);
+                // Migration: bisher zugewiesene Hänger/Autos gelten automatisch als Event-Fahrzeuge
+                const _ta = ev.trailerAssignments || {}, _ca = ev.carAssignments || {};
+                ev.participatingTrailerIds = ev.participatingTrailerIds === undefined
+                    ? [...new Set([...Object.keys(_ta), ...Object.values(_ca).map(c => c && c.trailerId).filter(Boolean)])]
+                    : toArr(ev.participatingTrailerIds);
+                ev.participatingCarIds = ev.participatingCarIds === undefined ? Object.keys(_ca) : toArr(ev.participatingCarIds);
                 ev.participatingKidIds = toArr(ev.participatingKidIds);
                 ev.participatingRibIds = toArr(ev.participatingRibIds);
                 ev.trailerAssignments = ev.trailerAssignments || {};
@@ -1074,12 +1122,14 @@
                 Object.keys(ev.ribCoaches).forEach(rid => { if (!ribIds.has(rid) || !ev.participatingCoachIds.includes(ev.ribCoaches[rid])) delete ev.ribCoaches[rid]; });
                 ev.participatingKidIds = (ev.participatingKidIds || []).filter((id, i, a) => kidIds.has(id) && a.indexOf(id) === i);
                 ev.participatingRibIds = (ev.participatingRibIds || []).filter((id, i, a) => ribIds.has(id) && a.indexOf(id) === i);
+                ev.participatingTrailerIds = (ev.participatingTrailerIds || []).filter((id, i, a) => trailers[id] && a.indexOf(id) === i);
+                ev.participatingCarIds = (ev.participatingCarIds || []).filter((id, i, a) => cars[id] && a.indexOf(id) === i);
                 const part = new Set(ev.participatingKidIds);
                 const ta = ev.trailerAssignments = ev.trailerAssignments || {};
                 const seenBoat = new Set();
                 Object.keys(ta).forEach(tid => {
                     const tr = trailers[tid];
-                    if (!tr) { delete ta[tid]; return; }
+                    if (!tr || !ev.participatingTrailerIds.includes(tid)) { delete ta[tid]; return; }
                     Object.keys(ta[tid]).forEach(sk => {
                         const [l, p] = sk.split('-').map(Number);
                         const kid = ta[tid][sk];
@@ -1092,13 +1142,13 @@
                 const seenPerson = new Set(), seenTrailer = new Set();
                 Object.keys(ca).forEach(cid => {
                     const car = cars[cid];
-                    if (!car) { delete ca[cid]; return; }
+                    if (!car || !ev.participatingCarIds.includes(cid)) { delete ca[cid]; return; }
                     ca[cid].passengers = (ca[cid].passengers || []).filter(id => {
                         if (!id || !part.has(id) || seenPerson.has(id)) return false;
                         seenPerson.add(id); return true;
                     }).slice(0, car.seats);
                     const tId = ca[cid].trailerId;
-                    if (tId && (!trailers[tId] || seenTrailer.has(tId))) ca[cid].trailerId = null;
+                    if (tId && (!trailers[tId] || !ev.participatingTrailerIds.includes(tId) || seenTrailer.has(tId))) ca[cid].trailerId = null;
                     else if (tId) seenTrailer.add(tId);
                 });
             });
@@ -1561,6 +1611,7 @@
                     document.getElementById('eventInputEndDate').value = ev.endDate;
                     document.getElementById('eventInputCoach').value = ev.coach || '';
                     document.getElementById('eventInputNotes').value = ev.notes || '';
+                    document.getElementById('eventInputUrl').value = ev.organizerUrl || '';
 
                     document.getElementById('btnDeleteEvent').classList.remove('hidden');
                     document.getElementById('eventModalTitle').textContent = 'Event bearbeiten';
@@ -1579,6 +1630,11 @@
             const id = document.getElementById('eventId').value;
             const existingEv = id ? appData.events.find(e => e.id === id) : null;
 
+            if (!safeUrl(document.getElementById('eventInputUrl').value)) {
+                showAlert("Bitte einen gültigen Link zum Veranstalter angeben (beginnend mit https://).", "error");
+                return;
+            }
+
             const newEv = {
                 id: id || 'e_' + Date.now(),
                 name: document.getElementById('eventInputName').value,
@@ -1590,9 +1646,12 @@
                 endDate: document.getElementById('eventInputEndDate').value,
                 coach: document.getElementById('eventInputCoach').value,
                 notes: document.getElementById('eventInputNotes').value,
+                organizerUrl: safeUrl(document.getElementById('eventInputUrl').value),
                 participatingKidIds: existingEv ? (existingEv.participatingKidIds || []) : appData.masterKids.map(k=>k.id),
                 participatingRibIds: existingEv ? (existingEv.participatingRibIds || []) : appData.masterRibs.map(r=>r.id),
                 participatingCoachIds: existingEv ? (existingEv.participatingCoachIds || []) : [],
+                participatingTrailerIds: existingEv ? (existingEv.participatingTrailerIds || []) : [],
+                participatingCarIds: existingEv ? (existingEv.participatingCarIds || []) : [],
                 ribCoaches: existingEv ? (existingEv.ribCoaches || {}) : {},
                 trailerAssignments: existingEv ? (existingEv.trailerAssignments || {}) : {},
                 carAssignments: existingEv ? (existingEv.carAssignments || {}) : {},
@@ -1637,6 +1696,7 @@
                 icsStr += `UID:${ev.id}@clubfleet\r\nDTSTAMP:${stamp}\r\n`;
                 icsStr += `SUMMARY:${t(ev.name)} [${t(ev.boatClass || 'Multi-Class')}]\r\n`;
                 icsStr += `LOCATION:${t(ev.location)}\r\n`;
+                if (safeUrl(ev.organizerUrl)) icsStr += `URL:${safeUrl(ev.organizerUrl)}\r\n`;
                 icsStr += `DESCRIPTION:${t(`Typ: ${ev.type} | Klasse: ${ev.boatClass || 'Alle'} | Coach: ${ev.coach || ''}\nNotizen: ${ev.notes || ''}`)}\r\n`;
                 icsStr += `DTSTART;VALUE=DATE:${ev.startDate.replace(/-/g, '')}\r\n`;
                 icsStr += `DTEND;VALUE=DATE:${endExclusive(ev.endDate)}\r\n`;
@@ -1678,6 +1738,18 @@
             const end = fmtDate(ev.endDate);
             document.getElementById('dashDates').textContent = `${start} - ${end} | Ort: ${ev.location}`;
 
+            const notes = (ev.notes || '').trim();
+            const link = safeUrl(ev.organizerUrl);
+            document.getElementById('dashNotes').textContent = notes;
+            document.getElementById('dashNotesWrap').classList.toggle('hidden', !notes);
+            document.getElementById('dashLinkWrap').classList.toggle('hidden', !link);
+            if (link) {
+                const a = document.getElementById('dashOrganizerLink');
+                a.href = link;
+                a.querySelector('span').textContent = 'Veranstalter: ' + new URL(link).hostname;
+            }
+            document.getElementById('dashInfoCard').classList.toggle('hidden', !notes && !link);
+
             const kidsCount = (ev.participatingKidIds || []).length;
 
             let assignedOptiCount = 0;
@@ -1718,7 +1790,7 @@
                 <h4 class="font-bold text-xs uppercase text-slate-400 mb-3"><i class="fa-solid fa-car text-blue-400 mr-1"></i> Autos & Hänger-Zuweisung</h4>
                 <div class="space-y-3">`;
 
-            appData.masterCars.forEach(car => {
+            eventCars(ev).forEach(car => {
                 const carEvState = ev.carAssignments ? ev.carAssignments[car.id] : null;
                 const assignedTrailerId = carEvState ? carEvState.trailerId : null;
                 const assignedTrailer = appData.masterTrailers.find(t => t.id === assignedTrailerId);
@@ -1762,7 +1834,7 @@
                 <h4 class="font-bold text-xs uppercase text-slate-400 mb-3"><i class="fa-solid fa-trailer text-amber-400 mr-1"></i> Hänger-Belegungsübersicht</h4>
                 <div class="space-y-3">`;
 
-            appData.masterTrailers.forEach(tr => {
+            eventTrailers(ev).forEach(tr => {
                 const slots = (ev.trailerAssignments && ev.trailerAssignments[tr.id]) ? ev.trailerAssignments[tr.id] : {};
                 let loadedOptis = [];
                 Object.values(slots).forEach(kidId => {
@@ -1795,6 +1867,7 @@
         function renderParticipantsSelector() {
             const ev = getActiveEvent();
             renderParticipantCoaches(ev);
+            renderParticipantVehicles(ev);
             const kidsContainer = document.getElementById('participantsKidsGrid');
             const ribsContainer = document.getElementById('participantsRibsGrid');
 
@@ -1843,6 +1916,57 @@
                 `;
                 ribsContainer.appendChild(item);
             });
+        }
+
+        function eventTrailers(ev) {
+            const ids = ev.participatingTrailerIds || [];
+            return appData.masterTrailers.filter(t => ids.includes(t.id));
+        }
+        function eventCars(ev) {
+            const ids = ev.participatingCarIds || [];
+            return appData.masterCars.filter(c => ids.includes(c.id));
+        }
+
+        function renderParticipantVehicles(ev) {
+            const build = (items, selIds, onToggle, sub, emptyText, color) => {
+                if (!items.length) return `<div class="col-span-full text-xs text-slate-400">${emptyText}</div>`;
+                return items.map(it => {
+                    const on = selIds.includes(it.id);
+                    return `
+                    <label class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer select-none transition ${on ? `bg-${color}-950/30 border-${color}-500/50 text-white` : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-600'}">
+                        <input type="checkbox" ${on ? 'checked' : ''} onchange="${onToggle}('${it.id}')" class="w-4 h-4 rounded border-slate-700 bg-slate-900">
+                        <div class="text-xs">
+                            <div class="font-bold ${on ? `text-${color}-300` : 'text-slate-300'}">${esc(it.name)}</div>
+                            <div class="text-[10px] text-slate-400">${sub(it)}</div>
+                        </div>
+                    </label>`;
+                }).join('');
+            };
+            const tSel = ev.participatingTrailerIds || [], cSel = ev.participatingCarIds || [];
+            document.getElementById('selectedTrailersCountBadge').textContent = `${tSel.length} ausgewählt`;
+            document.getElementById('selectedCarsCountBadge').textContent = `${cSel.length} ausgewählt`;
+            document.getElementById('participantsTrailersGrid').innerHTML = build(appData.masterTrailers, tSel, 'toggleParticipantTrailer',
+                t => `${esc(t.levels)} Ebene(n) × ${esc(t.perLevel)} Plätze`, 'Noch keine Hänger angelegt (Stammdaten).', 'amber');
+            document.getElementById('participantsCarsGrid').innerHTML = build(appData.masterCars, cSel, 'toggleParticipantCar',
+                c => `${esc(c.driver)} | ${esc(c.seats)} Plätze`, 'Noch keine Autos eingetragen.', 'blue');
+        }
+
+        function toggleParticipantTrailer(id) {
+            if (!isCoach()) return;
+            const ev = getActiveEvent();
+            if (!ev.participatingTrailerIds) ev.participatingTrailerIds = [];
+            const i = ev.participatingTrailerIds.indexOf(id);
+            if (i === -1) ev.participatingTrailerIds.push(id); else ev.participatingTrailerIds.splice(i, 1);
+            saveData();   // entfernt bei Abwahl automatisch die Beladung/Zuweisung
+        }
+
+        function toggleParticipantCar(id) {
+            if (!isCoach()) return;
+            const ev = getActiveEvent();
+            if (!ev.participatingCarIds) ev.participatingCarIds = [];
+            const i = ev.participatingCarIds.indexOf(id);
+            if (i === -1) ev.participatingCarIds.push(id); else ev.participatingCarIds.splice(i, 1);
+            saveData();
         }
 
         function renderParticipantCoaches(ev) {
@@ -2042,9 +2166,9 @@
 
             // 3. Hänger Grid Renders mit Optischem Feedback (Disabled + Ortsanzeige)
             const trailersGrid = document.getElementById('trailersGrid');
-            trailersGrid.innerHTML = '';
+            trailersGrid.innerHTML = eventTrailers(ev).length ? '' : '<div class="col-span-full text-xs text-slate-400 p-4 bg-slate-900/60 rounded-xl border border-slate-700">Für dieses Event wurden noch keine Hänger ausgewählt. Der Trainer wählt sie im Tab „Team & Meldeliste“ aus.</div>';
 
-            appData.masterTrailers.forEach(tr => {
+            eventTrailers(ev).forEach(tr => {
                 const slots = (ev.trailerAssignments && ev.trailerAssignments[tr.id]) ? ev.trailerAssignments[tr.id] : {};
 
                 let levelsHtml = '';
@@ -2104,15 +2228,15 @@
 
             // 4. Autos Grid Renders mit Optischem Feedback (Disabled + Ortsanzeige)
             const carsGrid = document.getElementById('carsGrid');
-            carsGrid.innerHTML = '';
+            carsGrid.innerHTML = eventCars(ev).length ? '' : '<div class="col-span-full text-xs text-slate-400 p-4 bg-slate-900/60 rounded-xl border border-slate-700">Für dieses Event wurden noch keine Autos ausgewählt. Der Trainer wählt sie im Tab „Team & Meldeliste“ aus.</div>';
 
-            appData.masterCars.forEach(car => {
+            eventCars(ev).forEach(car => {
                 const carEvState = ev.carAssignments ? ev.carAssignments[car.id] : null;
                 const assignedTrailerId = carEvState ? carEvState.trailerId : "";
                 const passengers = carEvState ? (carEvState.passengers || []) : [];
 
                 let trailerSelectHtml = `<option value="">-- Kein Hänger --</option>`;
-                appData.masterTrailers.forEach(tr => {
+                eventTrailers(ev).forEach(tr => {
                     trailerSelectHtml += `<option value="${tr.id}" ${tr.id === assignedTrailerId ? 'selected' : ''}>${esc(tr.name)}</option>`;
                 });
 
@@ -2482,6 +2606,7 @@
                     <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-700/60 text-xs flex items-center justify-between">
                         <div>
                             <span class="font-bold text-white block">${esc(c.name)}</span>
+                            <span class="text-slate-400 block">${c.email ? esc(c.email) : '<span class="text-amber-400">E-Mail fehlt – bitte ergänzen</span>'}</span>
                             <span class="text-slate-400">${esc(c.phone) || '-'}</span>
                         </div>
                         <div class="flex items-center gap-2">
@@ -2637,6 +2762,7 @@
                 document.getElementById('coachId').value = c.id;
                 document.getElementById('coachName').value = c.name;
                 document.getElementById('coachPhone').value = c.phone || '';
+                document.getElementById('coachEmail').value = c.email || '';
                 document.getElementById('coachModalTitle').textContent = 'Trainer bearbeiten';
             }
             document.getElementById('coachModal').classList.remove('hidden');
@@ -2653,7 +2779,8 @@
             const coach = {
                 id: id || 'co_' + Date.now(),
                 name: document.getElementById('coachName').value.trim(),
-                phone: document.getElementById('coachPhone').value.trim()
+                phone: document.getElementById('coachPhone').value.trim(),
+                email: document.getElementById('coachEmail').value.trim()
             };
             const idx = id ? appData.masterCoaches.findIndex(c => c.id === id) : -1;
             if (idx !== -1) appData.masterCoaches[idx] = coach; else appData.masterCoaches.push(coach);
