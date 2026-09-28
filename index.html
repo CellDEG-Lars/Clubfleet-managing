@@ -8,6 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- Google Fonts Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
@@ -122,6 +123,9 @@
                     <button onclick="switchTab('checklist')" id="tab-checklist" class="tab-btn px-3 py-2 rounded-xl font-medium transition flex items-center gap-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/60">
                         <i class="fa-solid fa-list-check text-purple-400"></i> Tech & Packliste
                     </button>
+                    <button onclick="switchTab('billing')" id="tab-billing" class="admin-only tab-btn px-3 py-2 rounded-xl font-medium transition flex items-center gap-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/60">
+                        <i class="fa-solid fa-file-invoice-dollar text-emerald-400"></i> Abrechnung
+                    </button>
                     <button onclick="switchTab('masterdata')" id="tab-masterdata" class="admin-only tab-btn px-3 py-2 rounded-xl font-medium transition flex items-center gap-2 whitespace-nowrap text-slate-400 hover:text-white hover:bg-slate-800/60 ml-auto border-l border-slate-800 pl-3">
                         <i class="fa-solid fa-database text-cyan-400"></i> Vereinskader & Flotte
                     </button>
@@ -184,6 +188,7 @@
                         <button id="btnViewCalendar" onclick="setCalendarMode('month')" class="px-3 py-1.5 rounded-lg bg-ocean-600 text-white shadow">Monat</button>
                         <button id="btnViewList" onclick="setCalendarMode('list')" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white">Liste</button>
                     </div>
+                    <button onclick="openArchiveModal()" class="bg-slate-700 hover:bg-slate-600 text-white font-semibold px-4 py-2 rounded-xl text-sm shadow transition flex items-center gap-2"><i class="fa-solid fa-box-archive text-amber-400"></i> Archiv</button>
                     <button onclick="openEventModal()" class="admin-only bg-ocean-600 hover:bg-ocean-500 text-white font-semibold px-4 py-2 rounded-xl text-sm shadow-lg shadow-ocean-600/30 transition flex items-center gap-2">
                         <i class="fa-solid fa-plus"></i> Neues Event
                     </button>
@@ -423,6 +428,7 @@
                     <button onclick="openChecklistItemModal()" class="admin-only bg-purple-600 hover:bg-purple-500 text-white font-semibold px-3 py-1.5 rounded-xl text-xs shadow-lg transition flex items-center gap-1.5">
                         <i class="fa-solid fa-plus"></i> Position hinzufügen
                     </button>
+                    <button onclick="addStdChecklist()" class="admin-only bg-slate-700 hover:bg-slate-600 text-white font-semibold px-3 py-1.5 rounded-xl text-xs shadow transition flex items-center gap-1.5"><i class="fa-solid fa-clipboard-list"></i> Standardpackliste einfügen</button>
                     <button onclick="resetChecklist()" class="admin-only text-slate-400 hover:text-white text-xs font-semibold underline">
                         Zurücksetzen
                     </button>
@@ -430,6 +436,9 @@
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="checklistCategoryContainer"></div>
         </div>
+
+        <!-- TAB: ABRECHNUNG (ADMIN) -->
+        <div id="view-billing" class="tab-content hidden space-y-6"><div id="billingContent"></div></div>
 
         <!-- TAB 7: STAMMDATEN & FLOTTE (GLOBAL - ADMIN) -->
         <div id="view-masterdata" class="tab-content hidden space-y-8">
@@ -461,8 +470,8 @@
                                 <th class="px-4 py-3">Rolle</th>
                                 <th class="px-4 py-3">Segelnummer</th>
                                 <th class="px-4 py-3">Eigentum</th>
-                                <th class="px-4 py-3">Telefon / Notfall</th>
-                                <th class="px-4 py-3">E-Mail</th>
+                                <th class="px-4 py-3">Eltern-Kontakt Tel.</th>
+                                <th class="px-4 py-3">Eltern-E-Mail</th>
                                 <th class="px-4 py-3 text-right">Aktionen</th>
                             </tr>
                         </thead>
@@ -665,6 +674,7 @@
                     <label class="block text-xs font-semibold text-slate-300 mb-1">Treffpunkt & Notizen</label>
                     <textarea id="eventInputNotes" rows="2" placeholder="Treffpunkt, Kranzeiten, Ausrüstung..." class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white outline-none focus:ring-2 focus:ring-ocean-500"></textarea>
                 </div>
+                <label class="flex items-center gap-2 text-xs text-slate-300 cursor-pointer"><input type="checkbox" id="eventInputStdList" class="w-4 h-4 rounded"> Standardpackliste anlegen (bei bestehendem Event: fehlende Positionen ergänzen)</label>
                 <div class="flex justify-between items-center pt-3 border-t border-slate-700">
                     <button type="button" id="btnDeleteEvent" onclick="deleteCurrentModalEvent()" class="text-xs text-rose-400 hover:underline hidden">Event löschen</button>
                     <div class="flex gap-2 ml-auto">
@@ -727,13 +737,18 @@
                         </select>
                     </div>
                 </div>
+                <div class="pt-2 border-t border-slate-700"><span class="text-[11px] font-bold uppercase tracking-wider text-emerald-400"><i class="fa-solid fa-user-group mr-1"></i>Elternkontakt (Notfall &amp; Rechnungsversand)</span></div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">Notfallkontakt / Eltern Telefon</label>
-                    <input type="text" id="kidPhone" placeholder="z.B. Fr. Müller 0171-123456" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Name Eltern / Rechnungsempfänger</label>
+                    <input type="text" id="kidParent" placeholder="z.B. Familie Müller" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">E-Mail Adresse</label>
-                    <input type="email" id="kidEmail" placeholder="kontakt@beispiel.de" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Eltern-Telefon *</label>
+                    <input type="text" id="kidPhone" required placeholder="z.B. 0171-123456" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Eltern-E-Mail * (Rechnungen werden hierhin gesendet)</label>
+                    <input type="email" id="kidEmail" required placeholder="kontakt@beispiel.de" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
                 </div>
                 <div class="flex justify-end gap-2 pt-2">
                     <button type="button" onclick="closeKidModal()" class="px-4 py-2 text-sm text-slate-400 hover:bg-slate-700 rounded-xl">Abbrechen</button>
@@ -909,6 +924,14 @@
         </div>
     </div>
 
+    <div id="archiveModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4"><div class="bg-slate-800 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-slate-700 text-slate-100">
+        <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-bold text-white"><i class="fa-solid fa-box-archive text-amber-400 mr-2"></i>Event-Archiv</h3><button onclick="closeArchive()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button></div>
+        <div id="archiveBody" class="space-y-5"></div></div></div>
+    <div id="billSettingsModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4"><div class="bg-slate-800 rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-slate-700 text-slate-100">
+        <h3 class="text-lg font-bold text-white mb-1">Rechnungsdaten des Vereins</h3><p class="text-xs text-slate-400 mb-4">Werden nur auf diesem Gerät gespeichert und erscheinen auf jeder Rechnung.</p>
+        <form onsubmit="saveBillSettings(event)" class="space-y-3"><div id="billSettingsFields" class="grid grid-cols-2 gap-3"></div>
+        <div class="flex justify-end gap-2 pt-2"><button type="button" onclick="document.getElementById('billSettingsModal').classList.add('hidden')" class="px-4 py-2 text-sm text-slate-400 hover:bg-slate-700 rounded-xl">Abbrechen</button><button type="submit" class="px-4 py-2 text-sm bg-ocean-600 hover:bg-ocean-500 text-white rounded-xl font-semibold shadow">Speichern</button></div></form></div></div>
+
     <!-- LOGIC & APPLICATION CODE -->
     <script>
         const COACH_PASSWORD = "trainer2026";
@@ -1025,7 +1048,7 @@
         const FIREBASE_DB_URL = "https://club-flottenlogistik-default-rtdb.europe-west1.firebasedatabase.app";
         const SYNC_ENABLED = !!FIREBASE_DB_URL;
         const DB_PATH = FIREBASE_DB_URL.replace(/\/+$/, '') + '/clubfleet.json';
-        const SHARED_KEYS = ['masterKids', 'masterTrailers', 'masterCars', 'masterRibs', 'masterCoaches', 'events'];
+        const SHARED_KEYS = ['masterKids', 'masterTrailers', 'masterCars', 'masterRibs', 'masterCoaches', 'events', 'archive'];
         let legacyMigrated = false;
         const syncState = { inFlight: false, dirty: false, needPull: false, version: 0, last: {} };
         const EMPTY_EVENT = { id: '', name: 'Kein Event vorhanden', type: '', status: '', boatClass: '', location: '', startDate: '', endDate: '', coach: '', notes: '', participatingKidIds: [], participatingRibIds: [], participatingCoachIds: [], participatingTrailerIds: [], participatingCarIds: [], ribCoaches: {}, trailerAssignments: {}, carAssignments: {}, checklist: [] };
@@ -1067,8 +1090,9 @@
                     legacyMigrated = true;
                 }
             });
-            out.events.forEach(ev => {
+            const _normEv = ev => {
                 ev.ribCoaches = ev.ribCoaches || {};
+                ev.snapshotKids = toArr(ev.snapshotKids);
                 // Migration: bisher zugewiesene Boots-Trainer gelten automatisch als Event-Trainer
                 ev.participatingCoachIds = ev.participatingCoachIds === undefined ? [...new Set(Object.values(ev.ribCoaches))] : toArr(ev.participatingCoachIds);
                 // Migration: bisher zugewiesene Hänger/Autos gelten automatisch als Event-Fahrzeuge
@@ -1083,7 +1107,11 @@
                 ev.carAssignments = ev.carAssignments || {};
                 Object.values(ev.carAssignments).forEach(c => { c.passengers = toArr(c.passengers); if (c.trailerId === undefined) c.trailerId = null; });
                 ev.checklist = toArr(ev.checklist);
-            });
+                ev.billing = normBilling(ev);
+            };
+            out.events.forEach(_normEv);
+            out.archive = out.archive.filter(y => y && y.year).map(y => ({ year: y.year, events: toArr(y.events) }));
+            out.archive.forEach(y => y.events.forEach(_normEv));
             return out;
         }
         function sharedData() {
@@ -1347,7 +1375,7 @@
 
                 document.querySelectorAll('.admin-only').forEach(el => el.classList.add('hidden'));
 
-                const masterTab = document.getElementById('view-masterdata');
+                const masterTab = document.querySelector('#view-masterdata:not(.hidden), #view-billing:not(.hidden)');
                 if (masterTab && !masterTab.classList.contains('hidden')) {
                     switchTab('overview');
                 }
@@ -1367,7 +1395,7 @@
         }
 
         function switchTab(tabId) {
-            if (tabId === 'masterdata' && !isCoach()) {
+            if ((tabId === 'masterdata' || tabId === 'billing') && !isCoach()) {
                 showAlert("Zugriff verweigert: Der Bereich Vereinskader & Flotte ist Trainern vorbehalten.", "info");
                 return;
             }
@@ -1416,12 +1444,235 @@
         function renderAllViews() {
             // Jede Ansicht einzeln absichern: ein Fehler darf weder andere Ansichten noch das Speichern blockieren
             [populateEventSelector, renderCalendarView, renderEventDashboard, renderParticipantsSelector,
-             renderLogistics, renderRibs, renderChecklist, renderMasterData].forEach(fn => {
+             renderLogistics, renderRibs, renderChecklist, renderMasterData, renderBilling].forEach(fn => {
                 try { fn(); } catch (err) { console.error('Render-Fehler in ' + fn.name + ':', err); }
             });
             if (!isCoach()) {
                 document.querySelectorAll('#view-participants input[type=checkbox], #view-participants select, #trailersGrid select, #carsGrid select, #ribsGrid select').forEach(el => { el.disabled = true; });
             }
+        }
+
+
+        // ===== STANDARD-PACKLISTE =====
+        const STD_CHECKLIST = {
+            'Segler & Persönliche Ausrüstung': ['Rettungsweste / Schwimmweste (Pflicht)', 'Segelbekleidung & Ölzeug', 'Neopren- oder Trockenanzug', 'Segelhandschuhe & Segelschuhe', 'Wechselkleidung & Handtuch', 'Sonnenschutz (Creme, Kappe, Sonnenbrille)', 'Trinkflasche & Verpflegung', 'Trapezgurt (420er/29er/49er)'],
+            'Boot & Rigg': ['Segel, Mast, Baum & Rigg komplett', 'Ruder, Pinne & Schwert', 'Ersatz-Schoten, Tauwerk & Kleinteile (Schäkel, Splinte)', 'Werkzeugkasten (Zange, Schraubendreher, Inbus)', 'Klebeband, Segelreparaturband & Kabelbinder', 'Schwamm, Pütz & Lenzer-Check', 'Slipwagen & Persenning'],
+            'RIB & Sicherheit': ['Erste-Hilfe-Set & Rettungsdecke', 'UKW-Funkgeräte / Handys in wasserdichter Hülle', 'Ersatzkraftstoff & Kanister', 'Anker, Paddel, Schleppleine & Messer', 'Trainer-Rettungswesten & Kill-Switch-Leine', 'Wendemarken, Bojen & Zielflagge', 'Fernglas & Windmesser'],
+            'Dokumente & Anmeldung': ['Meldebestätigung / Startberechtigung', 'Vermessungsbrief / Messbrief', 'Versicherungsnachweis & Krankenkassenkarten', 'Einverständniserklärungen der Eltern & Notfallkontakte', 'Fahrzeug- & Hängerpapiere'],
+            'Transport & Trailer': ['Trailer: Beleuchtung, Reifen & Stützrad geprüft', 'Zurrgurte & Bootsunterlagen', 'Boote sicher verzurrt', 'Ersatzrad & Wagenheber', 'Getränke & Verpflegung für die Fahrt']
+        };
+        function mergeStdChecklist(list, on) {
+            if (!on) return list;
+            const out = list.slice(), have = new Set(out.map(c => c.text));
+            Object.keys(STD_CHECKLIST).forEach(cat => STD_CHECKLIST[cat].forEach(t => {
+                if (!have.has(t)) out.push({ id: 'ch_' + hashId(cat + t), category: cat, text: t, checked: false });
+            }));
+            return out;
+        }
+        function addStdChecklist() {
+            const ev = getActiveEvent();
+            if (!isCoach() || !ev.id) return;
+            const before = ev.checklist.length;
+            ev.checklist = mergeStdChecklist(ev.checklist || [], true);
+            saveData();
+            showAlert(`Standardpackliste eingefügt (${ev.checklist.length - before} neue Positionen).`, 'success');
+        }
+
+        // ===== ARCHIV =====
+        function todayStr() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+        function openArchiveModal() { renderArchive(); document.getElementById('archiveModal').classList.remove('hidden'); }
+        function closeArchive() { document.getElementById('archiveModal').classList.add('hidden'); }
+        function renderArchive() {
+            const past = appData.events.filter(e => (e.endDate || e.startDate) < todayStr()).sort((a, b) => a.startDate.localeCompare(b.startDate));
+            let h = '';
+            if (isCoach()) {
+                h += `<div class="bg-slate-900/60 p-4 rounded-2xl border border-slate-700"><h4 class="font-bold text-white text-sm mb-2">Vergangene Events archivieren</h4>`;
+                h += past.length ? past.map(e => `<label class="flex items-center gap-2 py-1 text-xs text-slate-200 cursor-pointer"><input type="checkbox" class="arch-cb w-4 h-4" value="${e.id}" checked> <b>${esc(e.name)}</b> <span class="text-slate-400">${fmtDate(e.startDate)} – ${fmtDate(e.endDate)}</span></label>`).join('') +
+                    `<button onclick="archiveSelected()" class="mt-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl"><i class="fa-solid fa-box-archive mr-1"></i> Auswahl ins Archiv verschieben</button>`
+                    : '<p class="text-xs text-slate-400">Keine vergangenen Events vorhanden.</p>';
+                h += '</div>';
+            }
+            const years = appData.archive.slice().sort((a, b) => b.year - a.year);
+            h += years.length ? years.map(y => `<details class="bg-slate-900/60 rounded-2xl border border-slate-700 p-4" open><summary class="cursor-pointer font-bold text-white text-sm">${y.year} <span class="text-slate-400 font-normal text-xs">– ${y.events.length} Event(s)</span></summary><div class="mt-3 space-y-2">` +
+                y.events.map(e => `<div class="p-3 rounded-xl bg-slate-800 border border-slate-700 text-xs"><div class="flex justify-between gap-2"><b class="text-white">${esc(e.name)}</b>${isCoach() ? `<span class="whitespace-nowrap"><button onclick="restoreArchived(${y.year},'${e.id}')" class="text-ocean-400 hover:text-ocean-300 mr-3"><i class="fa-solid fa-rotate-left"></i> Wiederherstellen</button><button onclick="deleteArchived(${y.year},'${e.id}')" class="text-rose-400 hover:text-rose-300"><i class="fa-solid fa-trash"></i></button></span>` : ''}</div>
+                    <div class="text-slate-400 mt-1">${fmtDate(e.startDate)} – ${fmtDate(e.endDate)} · ${esc(e.location)} · ${esc(e.boatClass) || 'Alle Classes'}</div>
+                    <div class="text-slate-500 mt-1">Segler: ${e.snapshotKids.map(k => esc(k.name)).join(', ') || '–'}</div></div>`).join('') + '</div></details>').join('')
+                : '<p class="text-xs text-slate-400 text-center py-4">Das Archiv ist noch leer.</p>';
+            document.getElementById('archiveBody').innerHTML = h;
+        }
+        function archiveSelected() {
+            if (!isCoach()) return;
+            const ids = [...document.querySelectorAll('.arch-cb:checked')].map(c => c.value);
+            const evs = appData.events.filter(e => ids.includes(e.id));
+            if (!evs.length) { showAlert('Bitte mindestens ein Event auswählen.', 'info'); return; }
+            const open = evs.filter(e => openInvoices(e) > 0).length;
+            if (open && !confirm(`${open} Event(s) haben noch offene (unbezahlte) Rechnungen. Trotzdem archivieren?`)) return;
+            evs.forEach(ev => {
+                ev.snapshotKids = ev.participatingKidIds.map(id => appData.masterKids.find(k => k.id === id)).filter(Boolean).map(k => ({ id: k.id, name: `${k.firstName} ${k.lastName} (${k.group})` }));
+                const yr = +(ev.startDate || ev.endDate).slice(0, 4);
+                let y = appData.archive.find(a => a.year === yr);
+                if (!y) appData.archive.push(y = { year: yr, events: [] });
+                y.events.push(ev);
+            });
+            appData.events = appData.events.filter(e => !ids.includes(e.id));
+            if (!appData.events.some(e => e.id === appData.activeEventId)) appData.activeEventId = appData.events[0] ? appData.events[0].id : '';
+            saveData(); renderArchive();
+            showAlert(`${evs.length} Event(s) ins Archiv verschoben.`, 'success');
+        }
+        function restoreArchived(year, id) {
+            if (!isCoach()) return;
+            const y = appData.archive.find(a => a.year === year); if (!y) return;
+            const ev = y.events.find(e => e.id === id); if (!ev) return;
+            y.events = y.events.filter(e => e.id !== id);
+            appData.archive = appData.archive.filter(a => a.events.length);
+            delete ev.snapshotKids; appData.events.push(ev);
+            if (!appData.activeEventId) appData.activeEventId = ev.id;
+            saveData(); renderArchive();
+            showAlert('Event aus dem Archiv wiederhergestellt.', 'success');
+        }
+        function deleteArchived(year, id) {
+            if (!isCoach() || !confirm('Archiviertes Event endgültig löschen?')) return;
+            const y = appData.archive.find(a => a.year === year); if (!y) return;
+            y.events = y.events.filter(e => e.id !== id);
+            appData.archive = appData.archive.filter(a => a.events.length);
+            saveData(); renderArchive();
+        }
+
+        // ===== ABRECHNUNG =====
+        const STD_POSITIONS = [['Startgeld / Meldegebühr', 'each'], ['Unterkunft (pro Nacht)', 'each', 'n'], ['Verpflegung (pro Tag)', 'each', 'd'], ['Fahrtkosten (Bus / Trailer / Pkw)', 'split'], ['Treibstoff Begleitboote (RIB)', 'split'], ['Trainerhonorar / Betreuung', 'split'], ['Vereinsboot- & Materialnutzung', 'each'], ['Hafen-, Kran- & Liegegebühren', 'split'], ['Fähre, Maut & Parkgebühren', 'split'], ['Vereinszuschuss / Rabatt (negativen Betrag eingeben)', 'each']];
+        const BILL_DEF = { club: '', street: '', city: '', contact: '', email: '', phone: '', holder: '', iban: '', bic: '', bank: '', days: 14, prefix: 'RE', next: 1, tax: '' };
+        const BILL_LABELS = { club: 'Verein / Absender *', street: 'Straße & Nr.', city: 'PLZ & Ort', contact: 'Ansprechpartner (Trainer)', email: 'E-Mail', phone: 'Telefon', holder: 'Kontoinhaber', iban: 'IBAN *', bic: 'BIC', bank: 'Bank', days: 'Zahlungsziel (Tage)', prefix: 'Rechnungsnr.-Präfix', next: 'Nächste Rechnungsnr.', tax: 'Steuerhinweis (z.B. § 19 UStG – keine Umsatzsteuer)' };
+        const BI = 'px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white w-full';
+        const eur = n => (Math.round(n * 100) / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/\u00a0/g, ' ') + ' €';
+        function billSettings() { try { return Object.assign({}, BILL_DEF, JSON.parse(localStorage.getItem('clubfleet_billing'))); } catch (e) { return Object.assign({}, BILL_DEF); } }
+        function openBillSettings() {
+            const s = billSettings();
+            document.getElementById('billSettingsFields').innerHTML = Object.keys(BILL_DEF).map(k => `<div class="${k === 'tax' || k === 'club' ? 'col-span-2' : ''}"><label class="block text-[11px] font-semibold text-slate-300 mb-1">${BILL_LABELS[k]}</label><input id="bs_${k}" value="${esc(s[k])}" ${['days', 'next'].includes(k) ? 'type="number" min="1"' : ''} class="${BI}"></div>`).join('');
+            document.getElementById('billSettingsModal').classList.remove('hidden');
+        }
+        function saveBillSettings(e) {
+            e.preventDefault();
+            const s = {}; Object.keys(BILL_DEF).forEach(k => { s[k] = document.getElementById('bs_' + k).value.trim(); });
+            try { localStorage.setItem('clubfleet_billing', JSON.stringify(s)); } catch (err) {}
+            document.getElementById('billSettingsModal').classList.add('hidden');
+            showAlert('Rechnungsdaten gespeichert.', 'success');
+        }
+        function defaultBilling(ev) {
+            const n = Math.max(0, Math.round((new Date(ev.endDate) - new Date(ev.startDate)) / 864e5)) || 0;
+            return { positions: STD_POSITIONS.map((p, i) => ({ id: 'bp_' + i, label: p[0], mode: p[1], price: 0, qty: p[2] === 'n' ? Math.max(n, 1) : p[2] === 'd' ? n + 1 : 1, kidId: '' })), invoices: {} };
+        }
+        function normBilling(ev) {
+            const b = ev.billing;
+            if (!b) return defaultBilling(ev);
+            return { positions: toArr(b.positions), invoices: (b.invoices && typeof b.invoices === 'object') ? b.invoices : {} };
+        }
+        function invoiceLines(ev, kidId) {
+            const n = Math.max(ev.participatingKidIds.length, 1);
+            return ev.billing.positions.filter(p => +p.price && (!p.kidId || p.kidId === kidId)).map(p => {
+                const tot = (+p.price) * (+p.qty || 1), split = p.mode === 'split' && !p.kidId;
+                const amt = Math.round((split ? tot / n : tot) * 100) / 100;
+                return { label: p.label + (split ? ` (Gesamt ${eur(tot)}, Anteil 1/${n})` : ''), qty: split ? 1 : (+p.qty || 1), unit: split ? amt : +p.price, amount: amt };
+            });
+        }
+        function invoiceTotal(ev, kidId) { return invoiceLines(ev, kidId).reduce((a, l) => a + l.amount, 0); }
+        function openInvoices(ev) { return ev.participatingKidIds.filter(k => invoiceTotal(ev, k) > 0 && !((ev.billing.invoices[k] || {}).paid)).length; }
+        function billSave() { syncState.version++; persistLocal(); remotePush(); renderBillingInvoices(); }
+        function billPos(id, f, v) {
+            const p = getActiveEvent().billing.positions.find(x => x.id === id); if (!p) return;
+            p[f] = (f === 'price' || f === 'qty') ? (parseFloat(String(v).replace(',', '.')) || 0) : v;
+            if (f === 'kidId' && v) p.mode = 'each';
+            if (f === 'kidId') { syncState.version++; persistLocal(); remotePush(); renderBilling(); } else billSave();
+        }
+        function billAdd() { const ev = getActiveEvent(); ev.billing.positions.push({ id: 'bp_' + Date.now(), label: 'Individuelle Position', mode: 'each', price: 0, qty: 1, kidId: '' }); saveData(); }
+        function billDel(id) { const ev = getActiveEvent(); ev.billing.positions = ev.billing.positions.filter(p => p.id !== id); saveData(); }
+        function billStd() {
+            const ev = getActiveEvent(), have = new Set(ev.billing.positions.map(p => p.label));
+            defaultBilling(ev).positions.forEach((p, i) => { if (!have.has(p.label)) { p.id = 'bp_' + Date.now() + i; ev.billing.positions.push(p); } });
+            saveData();
+        }
+        function billFlag(kidId, f, v) { const ev = getActiveEvent(); const i = ev.billing.invoices[kidId] = ev.billing.invoices[kidId] || {}; i[f] = v; billSave(); }
+        function renderBilling() {
+            const el = document.getElementById('billingContent');
+            if (!el || !isCoach()) return;
+            const ev = getActiveEvent();
+            if (!ev.id) { el.innerHTML = '<div class="p-8 text-center text-slate-400 text-sm">Kein aktives Event – bitte zuerst ein Event anlegen oder aus dem Archiv wiederherstellen.</div>'; return; }
+            const kids = ev.participatingKidIds.map(id => appData.masterKids.find(k => k.id === id)).filter(Boolean);
+            const rows = ev.billing.positions.map(p => `<tr class="border-b border-slate-700/50">
+                <td class="py-1.5 pr-2"><input value="${esc(p.label)}" onchange="billPos('${p.id}','label',this.value)" class="${BI}"></td>
+                <td class="py-1.5 pr-2"><select onchange="billPos('${p.id}','mode',this.value)" ${p.kidId ? 'disabled' : ''} class="${BI}"><option value="each" ${p.mode === 'each' ? 'selected' : ''}>pro Segler</option><option value="split" ${p.mode === 'split' ? 'selected' : ''}>Gesamtbetrag aufteilen</option></select></td>
+                <td class="py-1.5 pr-2 w-20"><input type="number" step="0.5" value="${p.qty}" onchange="billPos('${p.id}','qty',this.value)" class="${BI}"></td>
+                <td class="py-1.5 pr-2 w-28"><input type="number" step="0.01" value="${p.price}" onchange="billPos('${p.id}','price',this.value)" class="${BI}"></td>
+                <td class="py-1.5 pr-2"><select onchange="billPos('${p.id}','kidId',this.value)" class="${BI}"><option value="">Alle Segler</option>${kids.map(k => `<option value="${k.id}" ${p.kidId === k.id ? 'selected' : ''}>nur ${esc(k.firstName)} ${esc(k.lastName)}</option>`).join('')}</select></td>
+                <td class="py-1.5 text-right"><button onclick="billDel('${p.id}')" class="text-rose-400 hover:text-rose-300"><i class="fa-solid fa-trash"></i></button></td></tr>`).join('');
+            el.innerHTML = `<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div><h2 class="text-xl font-bold text-white">Abrechnung: ${esc(ev.name)}</h2><p class="text-xs text-slate-400">Preis = 0 wird nicht berechnet. „Gesamtbetrag aufteilen" teilt die Kosten gleichmäßig auf alle ${kids.length} gemeldeten Segler.</p></div>
+                <div class="flex flex-wrap gap-2 text-xs font-semibold"><button onclick="openBillSettings()" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-xl"><i class="fa-solid fa-building-columns mr-1"></i>Rechnungsdaten</button><button onclick="billStd()" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-xl">Standardpositionen ergänzen</button><button onclick="billAdd()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 rounded-xl"><i class="fa-solid fa-plus mr-1"></i>Individuelle Position</button></div></div>
+                <div class="bg-slate-800/50 p-5 rounded-2xl border border-slate-700/60 overflow-x-auto"><table class="w-full text-left text-xs"><thead class="text-slate-400 uppercase"><tr><th class="pb-2">Bezeichnung</th><th class="pb-2">Art</th><th class="pb-2">Menge</th><th class="pb-2">Preis €</th><th class="pb-2">Gilt für</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+                <div id="billInvoices"></div>`;
+            renderBillingInvoices();
+        }
+        function renderBillingInvoices() {
+            const box = document.getElementById('billInvoices'); if (!box) return;
+            const ev = getActiveEvent();
+            const kids = ev.participatingKidIds.map(id => appData.masterKids.find(k => k.id === id)).filter(Boolean);
+            let sum = 0, paid = 0;
+            const rows = kids.map(k => {
+                const t = invoiceTotal(ev, k.id), i = ev.billing.invoices[k.id] || {}; sum += t; if (i.paid) paid += t;
+                return `<tr class="border-b border-slate-700/50"><td class="py-2 pr-2"><b class="text-white">${esc(k.firstName)} ${esc(k.lastName)}</b><br><span class="text-slate-500">${esc(k.group)}${i.no ? ' · ' + esc(i.no) : ''}</span></td>
+                    <td class="py-2 pr-2 text-slate-300">${esc(k.parentName) || '–'}<br>${k.email ? esc(k.email) : '<span class="text-amber-400">E-Mail fehlt</span>'}<br><span class="text-slate-500">${esc(k.phone) || '–'}</span></td>
+                    <td class="py-2 pr-2 font-bold text-white whitespace-nowrap">${eur(t)}</td>
+                    <td class="py-2 pr-2 whitespace-nowrap"><label class="mr-2"><input type="checkbox" ${i.sent ? 'checked' : ''} onchange="billFlag('${k.id}','sent',this.checked)"> versendet</label><label><input type="checkbox" ${i.paid ? 'checked' : ''} onchange="billFlag('${k.id}','paid',this.checked)"> bezahlt</label></td>
+                    <td class="py-2 text-right whitespace-nowrap">${t > 0 ? `<button onclick="billPdf('${k.id}')" class="px-2.5 py-1 bg-slate-700 hover:bg-slate-600 rounded-lg mr-1"><i class="fa-solid fa-file-pdf text-rose-400"></i> PDF</button><button onclick="billMail('${k.id}')" class="px-2.5 py-1 bg-ocean-600 hover:bg-ocean-500 rounded-lg"><i class="fa-solid fa-envelope"></i> Senden</button>` : '<span class="text-slate-500">–</span>'}</td></tr>`;
+            }).join('');
+            box.innerHTML = `<div class="bg-slate-800/50 p-5 rounded-2xl border border-slate-700/60 overflow-x-auto"><div class="flex justify-between items-center mb-3"><h3 class="font-bold text-white text-sm">Rechnungen pro Segler</h3><span class="text-xs text-slate-400">Gesamt <b class="text-white">${eur(sum)}</b> · bezahlt <b class="text-emerald-400">${eur(paid)}</b> · offen <b class="text-amber-400">${eur(sum - paid)}</b></span></div>
+                <table class="w-full text-left text-xs"><thead class="text-slate-400 uppercase"><tr><th class="pb-2">Segler</th><th class="pb-2">Elternkontakt</th><th class="pb-2">Betrag</th><th class="pb-2">Status</th><th></th></tr></thead><tbody>${rows || '<tr><td class="py-4 text-slate-400">Keine Segler gemeldet.</td></tr>'}</tbody></table></div>`;
+        }
+        function ensureInvoice(ev, kidId) {
+            const i = ev.billing.invoices[kidId] = ev.billing.invoices[kidId] || {};
+            if (!i.no) { const s = billSettings(); i.no = `${s.prefix}-${new Date().getFullYear()}-${String(s.next).padStart(3, '0')}`; i.date = todayStr(); s.next = (+s.next || 1) + 1; try { localStorage.setItem('clubfleet_billing', JSON.stringify(s)); } catch (e) {} billSave(); }
+            return i;
+        }
+        function makePdf(kid) {
+            const ev = getActiveEvent(), s = billSettings(), inv = ensureInvoice(ev, kid.id), L = invoiceLines(ev, kid.id);
+            const d = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' }), T = x => String(x).replace(/€/g, 'EUR');
+            const total = L.reduce((a, l) => a + l.amount, 0), due = new Date(inv.date); due.setDate(due.getDate() + (+s.days || 14));
+            d.setFont('helvetica', 'bold').setFontSize(14).text(s.club || 'Verein', 20, 20);
+            d.setFont('helvetica', 'normal').setFontSize(9).text([s.street, s.city, s.email, s.phone].filter(Boolean), 20, 26);
+            d.setFontSize(7).text(T([s.club, s.street, s.city].filter(Boolean).join(' · ')), 20, 52);
+            d.setFontSize(10).text([kid.parentName || 'Eltern von', kid.parentName ? `(Eltern von ${kid.firstName} ${kid.lastName})` : `${kid.firstName} ${kid.lastName}`], 20, 58);
+            d.setFontSize(9).text([`Rechnungsnr.: ${inv.no}`, `Datum: ${fmtDate(inv.date)}`, `Zahlbar bis: ${fmtDate(due.toISOString().slice(0, 10))}`], 130, 58);
+            d.setFont('helvetica', 'bold').setFontSize(14).text(`Rechnung Nr. ${inv.no}`, 20, 90);
+            d.setFont('helvetica', 'normal').setFontSize(10).text(T(`${ev.name}, ${ev.location} (${fmtDate(ev.startDate)} – ${fmtDate(ev.endDate)})`), 20, 97, { maxWidth: 170 });
+            d.text(`Liebe Eltern von ${kid.firstName}, für die Teilnahme stellen wir folgende Kosten in Rechnung:`, 20, 107, { maxWidth: 170 });
+            let y = 120; const head = () => { d.setFont('helvetica', 'bold').setFontSize(9).text('Pos', 20, y).text('Bezeichnung', 28, y).text('Menge', 135, y, { align: 'right' }).text('Einzelpreis', 160, y, { align: 'right' }).text('Gesamt', 190, y, { align: 'right' }); d.line(20, y + 2, 190, y + 2); y += 8; d.setFont('helvetica', 'normal'); };
+            head();
+            L.forEach((l, i) => {
+                const lines = d.splitTextToSize(T(l.label), 95);
+                if (y + lines.length * 5 > 255) { d.addPage(); y = 20; head(); }
+                d.text(String(i + 1), 20, y).text(lines, 28, y).text(String(l.qty).replace('.', ','), 135, y, { align: 'right' }).text(T(eur(l.unit)), 160, y, { align: 'right' }).text(T(eur(l.amount)), 190, y, { align: 'right' });
+                y += lines.length * 5 + 2;
+            });
+            if (y > 235) { d.addPage(); y = 20; }
+            d.line(120, y, 190, y); d.setFont('helvetica', 'bold').setFontSize(11).text('Gesamtbetrag', 120, y + 7).text(T(eur(total)), 190, y + 7, { align: 'right' });
+            d.setFont('helvetica', 'normal').setFontSize(9); y += 16;
+            if (s.tax) { d.text(T(s.tax), 20, y, { maxWidth: 170 }); y += 8; }
+            d.text(T(`Bitte überweisen Sie den Betrag bis zum ${fmtDate(due.toISOString().slice(0, 10))} unter Angabe von "${inv.no} ${kid.lastName}" an: ${s.holder || s.club}, IBAN ${s.iban || '–'}${s.bic ? ', BIC ' + s.bic : ''}${s.bank ? ', ' + s.bank : ''}.`), 20, y, { maxWidth: 170 });
+            d.text(['Mit sportlichen Grüßen', s.contact || s.club], 20, y + 18);
+            return { d, name: `Rechnung_${inv.no}_${kid.lastName}.pdf`, inv, total, ev, s };
+        }
+        function billPdf(kidId) {
+            const kid = appData.masterKids.find(k => k.id === kidId); if (!kid) return;
+            if (typeof window.jspdf === 'undefined') { showAlert('PDF-Bibliothek nicht geladen (Internetverbindung prüfen).', 'info'); return; }
+            const r = makePdf(kid); r.d.save(r.name); showAlert('PDF erstellt: ' + r.name, 'success');
+        }
+        function billMail(kidId) {
+            const kid = appData.masterKids.find(k => k.id === kidId); if (!kid) return;
+            if (!kid.email) { showAlert('Für diesen Segler fehlt die Eltern-E-Mail (Vereinskader).', 'info'); return; }
+            if (typeof window.jspdf === 'undefined') { showAlert('PDF-Bibliothek nicht geladen (Internetverbindung prüfen).', 'info'); return; }
+            const r = makePdf(kid); r.d.save(r.name);
+            const body = `Liebe Eltern von ${kid.firstName},\n\nanbei die Rechnung ${r.inv.no} über ${eur(r.total)} für "${r.ev.name}" (siehe PDF im Anhang).\n\nMit sportlichen Grüßen\n${r.s.contact || r.s.club}`;
+            location.href = `mailto:${kid.email.trim()}?subject=${encodeURIComponent('Rechnung ' + r.inv.no + ' – ' + r.ev.name)}&body=${encodeURIComponent(body)}`;
+            showAlert('PDF heruntergeladen – bitte in der geöffneten E-Mail als Anhang einfügen und senden. Danach „versendet" abhaken.', 'info');
         }
 
         function getActiveEvent() {
@@ -1594,6 +1845,7 @@
         function openEventModal(eventId = null) {
             if (!isCoach()) return;
             document.getElementById('eventForm').reset();
+            document.getElementById('eventInputStdList').checked = !eventId;
             document.getElementById('eventId').value = '';
             document.getElementById('btnDeleteEvent').classList.add('hidden');
             document.getElementById('eventModalTitle').textContent = 'Neues Event im Saisonkalender';
@@ -1655,7 +1907,8 @@
                 ribCoaches: existingEv ? (existingEv.ribCoaches || {}) : {},
                 trailerAssignments: existingEv ? (existingEv.trailerAssignments || {}) : {},
                 carAssignments: existingEv ? (existingEv.carAssignments || {}) : {},
-                checklist: existingEv ? (existingEv.checklist || []) : []
+                checklist: mergeStdChecklist(existingEv ? (existingEv.checklist || []) : [], document.getElementById('eventInputStdList').checked),
+                billing: existingEv ? existingEv.billing : defaultBilling({ startDate: document.getElementById('eventInputStartDate').value, endDate: document.getElementById('eventInputEndDate').value })
             };
 
             if (id) {
@@ -2554,7 +2807,7 @@
                         <td class="px-4 py-3 text-xs text-slate-300">${esc(k.role) || 'Einzelsegler'}</td>
                         <td class="px-4 py-3 font-mono text-xs text-amber-400 font-bold">${esc(k.sailNum)}</td>
                         <td class="px-4 py-3 text-xs text-slate-400">${esc(k.boatType)}</td>
-                        <td class="px-4 py-3 text-xs text-slate-300">${esc(k.phone) || '-'}</td>
+                        <td class="px-4 py-3 text-xs text-slate-300">${k.parentName ? '<span class="text-white font-semibold">' + esc(k.parentName) + '</span><br>' : ''}${esc(k.phone) || '-'}</td>
                         <td class="px-4 py-3 text-xs text-slate-400">${esc(k.email) || '-'}</td>
                         <td class="px-4 py-3 text-right">
                             <button onclick="openKidModal('${k.id}')" class="text-xs text-slate-400 hover:text-white mr-2"><i class="fa-solid fa-pen"></i></button>
@@ -2648,6 +2901,7 @@
                     document.getElementById('kidRole').value = k.role || 'Einzelsegler';
                     document.getElementById('kidSailNum').value = k.sailNum;
                     document.getElementById('kidBoatType').value = k.boatType;
+                    document.getElementById('kidParent').value = k.parentName || '';
                     document.getElementById('kidPhone').value = k.phone || '';
                     document.getElementById('kidEmail').value = k.email || '';
                     document.getElementById('kidModalTitle').textContent = 'Segler/in bearbeiten';
@@ -2672,6 +2926,7 @@
                 role: document.getElementById('kidRole').value,
                 sailNum: document.getElementById('kidSailNum').value,
                 boatType: document.getElementById('kidBoatType').value,
+                parentName: document.getElementById('kidParent').value,
                 phone: document.getElementById('kidPhone').value,
                 email: document.getElementById('kidEmail').value
             };
