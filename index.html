@@ -302,7 +302,7 @@
                     <h2 class="text-lg font-bold text-white flex items-center gap-2"><i class="fa-solid fa-list-ol text-ocean-400"></i> Multi-Klassen Event-Fahrtenübersicht</h2>
                     <span class="text-xs text-slate-400">Kompaktübersicht für Trainer, Eltern & Fahrer</span>
                 </div>
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="summaryViewContainer"></div>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6" id="summaryViewContainer"></div>
             </div>
         </div>
 
@@ -337,8 +337,11 @@
                 <div>
                     <h3 class="text-sm font-bold text-slate-200 uppercase tracking-wider mb-3 flex items-center justify-between border-b border-slate-700 pb-2">
                         <span>Hänger im Event</span>
-                        <span id="selectedTrailersCountBadge" class="text-xs bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2.5 py-0.5 rounded-full font-bold">0 ausgewählt</span>
+                        <span class="flex items-center gap-2">
+                            <span id="selectedTrailersCountBadge" class="text-xs bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2.5 py-0.5 rounded-full font-bold">0 ausgewählt</span>
+                        </span>
                     </h3>
+                    <p id="trailersFilterNote" class="text-[10px] text-slate-500 mb-2"></p>
                     <div id="participantsTrailersGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
                 </div>
 
@@ -747,6 +750,10 @@
                     <input type="text" id="kidPhone" required placeholder="z.B. 0171-123456" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
                 </div>
                 <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Adresse (für Rechnungen) *</label>
+                    <input type="text" id="kidAddress" required placeholder="Straße Nr., PLZ Ort" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                </div>
+                <div>
                     <label class="block text-xs font-semibold text-slate-300 mb-1">Eltern-E-Mail * (Rechnungen werden hierhin gesendet)</label>
                     <input type="email" id="kidEmail" required placeholder="kontakt@beispiel.de" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
                 </div>
@@ -770,7 +777,7 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-semibold text-slate-300 mb-1">Bootsklasse</label>
-                        <select id="trailerBoatClass" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                        <select id="trailerBoatClass" onchange="updateTrailerPerLevelOptions()" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
                             <option value="Opti A">Opti A</option>
                             <option value="Opti B">Opti B</option>
                             <option value="Opti">Opti Universal</option>
@@ -797,11 +804,8 @@
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-300 mb-1">Boote pro Etage</label>
-                        <select id="trailerPerLevel" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
-                            <option value="1">1 Boot</option>
-                            <option value="2" selected>2 Boote</option>
-                            <option value="3">3 Boote</option>
-                        </select>
+                        <select id="trailerPerLevel" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white"></select>
+                        <p class="text-[10px] text-slate-500 mt-1">Bei Opti-Klassen bis zu 6 Boote pro Etage möglich (schmale Jollen).</p>
                     </div>
                 </div>
                 <div class="flex justify-end gap-2 pt-2">
@@ -826,6 +830,13 @@
                     <div>
                         <label class="block text-xs font-semibold text-slate-300 mb-1">Fahrer/in *</label>
                         <input type="text" id="carDriver" placeholder="Name des Fahrers" required class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Fahrzeugtyp *</label>
+                        <select id="carOwnerType" onchange="toggleRoofRackOption()" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white font-semibold">
+                            <option value="club">Vereinsauto</option>
+                            <option value="parent">Elternauto</option>
+                        </select>
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-300 mb-1">Freie Sitzplätze</label>
@@ -855,6 +866,12 @@
                         <span class="text-xs font-semibold text-slate-200">Anhängerkupplung (AHK) vorhanden</span>
                     </label>
 
+                    <div id="roofRackOptionContainer" class="hidden">
+                        <label class="flex items-center gap-2 cursor-pointer select-none">
+                            <input type="checkbox" id="carRoofRack" class="w-4 h-4 text-blue-600 rounded bg-slate-900 border-slate-700">
+                            <span class="text-xs font-semibold text-slate-200">Dachträger vorhanden (nur Vereinsauto)</span>
+                        </label>
+                    </div>
                     <div id="largeTrailerOptionContainer" class="pl-6 space-y-2 hidden">
                         <div>
                             <label class="block text-xs font-semibold text-slate-300 mb-1">Max. Anhängelast gebremst (kg)</label>
@@ -878,8 +895,9 @@
     <!-- RIB MODAL -->
     <div id="ribModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
         <div class="bg-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-700 text-slate-100">
-            <h3 class="text-lg font-bold text-white mb-4">Begleitmotorboot (RIB) anlegen</h3>
+            <h3 id="ribModalTitle" class="text-lg font-bold text-white mb-4">Begleitmotorboot (RIB) anlegen</h3>
             <form id="ribForm" onsubmit="saveRib(event)" class="space-y-3">
+                <input type="hidden" id="ribId">
                 <div>
                     <label class="block text-xs font-semibold text-slate-300 mb-1">Boot Name *</label>
                     <input type="text" id="ribName" placeholder="z.B. Tornado RIB 5.8m" required class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
@@ -905,8 +923,9 @@
     <!-- CHECKLIST ITEM MODAL -->
     <div id="checklistItemModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
         <div class="bg-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-700 text-slate-100">
-            <h3 class="text-lg font-bold text-white mb-4">Packlisten-Position hinzufügen</h3>
+            <h3 id="checklistItemModalTitle" class="text-lg font-bold text-white mb-4">Packlisten-Position hinzufügen</h3>
             <form id="checklistItemForm" onsubmit="saveChecklistItem(event)" class="space-y-3">
+                <input type="hidden" id="checkItemId">
                 <div>
                     <label class="block text-xs font-semibold text-slate-300 mb-1">Kategorie *</label>
                     <input type="text" id="checkItemCategory" list="existingCategories" placeholder="z.B. 420er Spezialteile, Werkzeug..." required class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white">
@@ -944,13 +963,13 @@
             selectedClassFilter: "ALL",
             
             masterKids: [
-                { id: "k1", firstName: "Lukas", lastName: "Schmidt", group: "Opti A", role: "Einzelsegler", sailNum: "GER 13412", boatType: "Eigenes Boot", phone: "Fr. Schmidt 0171-889900", email: "schmidt@beispiel.de" },
-                { id: "k2", firstName: "Mia", lastName: "Weber", group: "Opti B", role: "Einzelsegler", sailNum: "GER 12890", boatType: "Vereinsboot", phone: "Hr. Weber 0172-112233", email: "weber@beispiel.de" },
-                { id: "k3", firstName: "Jonas", lastName: "Beyer", group: "420", role: "Steuermann", sailNum: "GER 56200", boatType: "Eigenes Boot", phone: "Hr. Beyer 0176-445566", email: "beyer@beispiel.de" },
-                { id: "k4", firstName: "Sophie", lastName: "Meyer", group: "420", role: "Vorschoter", sailNum: "GER 56200", boatType: "Eigenes Boot", phone: "Fr. Meyer 0151-998877", email: "meyer@beispiel.de" },
-                { id: "k5", firstName: "Finn", lastName: "Wagner", group: "ILCA", role: "Einzelsegler", sailNum: "GER 211050", boatType: "Eigenes Boot", phone: "Hr. Wagner 0173-334455", email: "wagner@beispiel.de" },
-                { id: "k6", firstName: "Emma", lastName: "Schulz", group: "29er", role: "Steuermann", sailNum: "GER 2890", boatType: "Vereinsboot", phone: "Fr. Schulz 0160-223344", email: "schulz@beispiel.de" },
-                { id: "k7", firstName: "Tim", lastName: "Hoffmann", group: "29er", role: "Vorschoter", sailNum: "GER 2890", boatType: "Vereinsboot", phone: "Hr. Hoffmann 0170-112244", email: "hoffmann@beispiel.de" }
+                { id: "k1", firstName: "Lukas", lastName: "Schmidt", group: "Opti A", role: "Einzelsegler", sailNum: "GER 13412", boatType: "Eigenes Boot", parentName: "Fr. Schmidt", phone: "0171-889900", email: "schmidt@beispiel.de", address: "Hafenweg 3, 24103 Kiel" },
+                { id: "k2", firstName: "Mia", lastName: "Weber", group: "Opti B", role: "Einzelsegler", sailNum: "GER 12890", boatType: "Vereinsboot", parentName: "Hr. Weber", phone: "0172-112233", email: "weber@beispiel.de", address: "Seestr. 12, 24103 Kiel" },
+                { id: "k3", firstName: "Jonas", lastName: "Beyer", group: "420", role: "Steuermann", sailNum: "GER 56200", boatType: "Eigenes Boot", parentName: "Hr. Beyer", phone: "0176-445566", email: "beyer@beispiel.de", address: "Am Hafen 5, 24103 Kiel" },
+                { id: "k4", firstName: "Sophie", lastName: "Meyer", group: "420", role: "Vorschoter", sailNum: "GER 56200", boatType: "Eigenes Boot", parentName: "Fr. Meyer", phone: "0151-998877", email: "meyer@beispiel.de", address: "Uferweg 8, 24103 Kiel" },
+                { id: "k5", firstName: "Finn", lastName: "Wagner", group: "ILCA", role: "Einzelsegler", sailNum: "GER 211050", boatType: "Eigenes Boot", parentName: "Hr. Wagner", phone: "0173-334455", email: "wagner@beispiel.de", address: "Deichstr. 21, 24103 Kiel" },
+                { id: "k6", firstName: "Emma", lastName: "Schulz", group: "29er", role: "Steuermann", sailNum: "GER 2890", boatType: "Vereinsboot", parentName: "Fr. Schulz", phone: "0160-223344", email: "schulz@beispiel.de", address: "Molenweg 2, 24103 Kiel" },
+                { id: "k7", firstName: "Tim", lastName: "Hoffmann", group: "29er", role: "Vorschoter", sailNum: "GER 2890", boatType: "Vereinsboot", parentName: "Hr. Hoffmann", phone: "0170-112244", email: "hoffmann@beispiel.de", address: "Kajenstr. 14, 24103 Kiel" }
             ],
             masterTrailers: [
                 { id: "t1", name: "Opti 6er-Trailer (KI-Y 101)", boatClass: "Opti A", weight: 1200, levels: 3, perLevel: 2 },
@@ -958,9 +977,9 @@
                 { id: "t3", name: "Skiff/29er Trailer (KI-Y 303)", boatClass: "29er", weight: 1300, levels: 2, perLevel: 1 }
             ],
             masterCars: [
-                { id: "c1", name: "VW Multivan (KI-SE 100)", driver: "Lars Bähr (Trainer)", seats: 6, childClass: "Keine bestimmte", hasAHK: true, maxTow: 2500, canTowLargeTrailer: true },
-                { id: "c2", name: "Passat Kombi (KI-OP 55)", driver: "Herr Beyer (Eltern)", seats: 3, childClass: "420", hasAHK: true, maxTow: 1800, canTowLargeTrailer: false },
-                { id: "c3", name: "Audi A6 Avant (KI-AB 88)", driver: "Frau Meyer (Eltern)", seats: 3, childClass: "Opti A", hasAHK: true, maxTow: 2000, canTowLargeTrailer: true }
+                { id: "c1", name: "VW Multivan (KI-SE 100)", driver: "Lars Bähr (Trainer)", seats: 6, childClass: "Keine bestimmte", ownerType: "club", roofRack: true, hasAHK: true, maxTow: 2500, canTowLargeTrailer: true },
+                { id: "c2", name: "Passat Kombi (KI-OP 55)", driver: "Herr Beyer (Eltern)", seats: 3, childClass: "420", ownerType: "parent", roofRack: false, hasAHK: true, maxTow: 1800, canTowLargeTrailer: false },
+                { id: "c3", name: "Audi A6 Avant (KI-AB 88)", driver: "Frau Meyer (Eltern)", seats: 3, childClass: "Opti A", ownerType: "parent", roofRack: false, hasAHK: true, maxTow: 2000, canTowLargeTrailer: true }
             ],
             masterRibs: [
                 { id: "r1", name: "Coach RIB 1 - Tornado 5.8m", motor: "90 PS Yamaha", fuel: "70L Einbautank" },
@@ -1051,7 +1070,7 @@
         const SHARED_KEYS = ['masterKids', 'masterTrailers', 'masterCars', 'masterRibs', 'masterCoaches', 'events', 'archive'];
         let legacyMigrated = false;
         const syncState = { inFlight: false, dirty: false, needPull: false, version: 0, last: {} };
-        const EMPTY_EVENT = { id: '', name: 'Kein Event vorhanden', type: '', status: '', boatClass: '', location: '', startDate: '', endDate: '', coach: '', notes: '', participatingKidIds: [], participatingRibIds: [], participatingCoachIds: [], participatingTrailerIds: [], participatingCarIds: [], ribCoaches: {}, trailerAssignments: {}, carAssignments: {}, checklist: [] };
+        const EMPTY_EVENT = { id: '', name: 'Kein Event vorhanden', type: '', status: '', boatClass: '', location: '', startDate: '', endDate: '', coach: '', notes: '', participatingKidIds: [], participatingRibIds: [], participatingCoachIds: [], participatingTrailerIds: [], participatingCarIds: [], ribCoaches: {}, ribTrailerAssignments: {}, trailerAssignments: {}, carAssignments: {}, checklist: [] };
         let alertTimer = null;
 
         function safeUrl(u) {
@@ -1082,6 +1101,7 @@
             const out = {};
             SHARED_KEYS.forEach(k => { out[k] = toArr(d && d[k]); });
             // Migration: früher hatte jedes Motorboot einen festen Fahrer und ein Funk-Feld
+            out.masterCars.forEach(c => { if (c.ownerType !== 'club' && c.ownerType !== 'parent') c.ownerType = /trainer|verein/i.test(c.driver || '') ? 'club' : 'parent'; if (typeof c.roofRack !== 'boolean') c.roofRack = false; });
             out.masterRibs.forEach(r => {
                 if ('driver' in r || 'vhf' in r) {
                     const nm = String(r.driver || '').trim();
@@ -1092,6 +1112,7 @@
             });
             const _normEv = ev => {
                 ev.ribCoaches = ev.ribCoaches || {};
+                ev.ribTrailerAssignments = ev.ribTrailerAssignments || {};
                 ev.snapshotKids = toArr(ev.snapshotKids);
                 // Migration: bisher zugewiesene Boots-Trainer gelten automatisch als Event-Trainer
                 ev.participatingCoachIds = ev.participatingCoachIds === undefined ? [...new Set(Object.values(ev.ribCoaches))] : toArr(ev.participatingCoachIds);
@@ -1148,6 +1169,8 @@
                 ev.ribCoaches = ev.ribCoaches || {};
                 ev.participatingCoachIds = (ev.participatingCoachIds || []).filter((id, i, a) => coachIds.has(id) && a.indexOf(id) === i);
                 Object.keys(ev.ribCoaches).forEach(rid => { if (!ribIds.has(rid) || !ev.participatingCoachIds.includes(ev.ribCoaches[rid])) delete ev.ribCoaches[rid]; });
+                ev.ribTrailerAssignments = ev.ribTrailerAssignments || {};
+                Object.keys(ev.ribTrailerAssignments).forEach(rid => { if (!ribIds.has(rid) || !ev.participatingRibIds.includes(rid) || !trailers[ev.ribTrailerAssignments[rid]] || !ev.participatingTrailerIds.includes(ev.ribTrailerAssignments[rid])) delete ev.ribTrailerAssignments[rid]; });
                 ev.participatingKidIds = (ev.participatingKidIds || []).filter((id, i, a) => kidIds.has(id) && a.indexOf(id) === i);
                 ev.participatingRibIds = (ev.participatingRibIds || []).filter((id, i, a) => ribIds.has(id) && a.indexOf(id) === i);
                 ev.participatingTrailerIds = (ev.participatingTrailerIds || []).filter((id, i, a) => trailers[id] && a.indexOf(id) === i);
@@ -1639,7 +1662,7 @@
             d.setFont('helvetica', 'bold').setFontSize(14).text(s.club || 'Verein', 20, 20);
             d.setFont('helvetica', 'normal').setFontSize(9).text([s.street, s.city, s.email, s.phone].filter(Boolean), 20, 26);
             d.setFontSize(7).text(T([s.club, s.street, s.city].filter(Boolean).join(' · ')), 20, 52);
-            d.setFontSize(10).text([kid.parentName || 'Eltern von', kid.parentName ? `(Eltern von ${kid.firstName} ${kid.lastName})` : `${kid.firstName} ${kid.lastName}`], 20, 58);
+            d.setFontSize(10).text([kid.parentName || `Eltern von ${kid.firstName} ${kid.lastName}`, kid.parentName ? `(Eltern von ${kid.firstName} ${kid.lastName})` : '', ...T(kid.address || '').split(',').map(x => x.trim())].filter(Boolean), 20, 58);
             d.setFontSize(9).text([`Rechnungsnr.: ${inv.no}`, `Datum: ${fmtDate(inv.date)}`, `Zahlbar bis: ${fmtDate(due.toISOString().slice(0, 10))}`], 130, 58);
             d.setFont('helvetica', 'bold').setFontSize(14).text(`Rechnung Nr. ${inv.no}`, 20, 90);
             d.setFont('helvetica', 'normal').setFontSize(10).text(T(`${ev.name}, ${ev.location} (${fmtDate(ev.startDate)} – ${fmtDate(ev.endDate)})`), 20, 97, { maxWidth: 170 });
@@ -1665,14 +1688,30 @@
             if (typeof window.jspdf === 'undefined') { showAlert('PDF-Bibliothek nicht geladen (Internetverbindung prüfen).', 'info'); return; }
             const r = makePdf(kid); r.d.save(r.name); showAlert('PDF erstellt: ' + r.name, 'success');
         }
-        function billMail(kidId) {
+        async function billMail(kidId) {
             const kid = appData.masterKids.find(k => k.id === kidId); if (!kid) return;
             if (!kid.email) { showAlert('Für diesen Segler fehlt die Eltern-E-Mail (Vereinskader).', 'info'); return; }
             if (typeof window.jspdf === 'undefined') { showAlert('PDF-Bibliothek nicht geladen (Internetverbindung prüfen).', 'info'); return; }
-            const r = makePdf(kid); r.d.save(r.name);
+            const r = makePdf(kid);
+            const subject = 'Rechnung ' + r.inv.no + ' – ' + r.ev.name;
             const body = `Liebe Eltern von ${kid.firstName},\n\nanbei die Rechnung ${r.inv.no} über ${eur(r.total)} für "${r.ev.name}" (siehe PDF im Anhang).\n\nMit sportlichen Grüßen\n${r.s.contact || r.s.club}`;
-            location.href = `mailto:${kid.email.trim()}?subject=${encodeURIComponent('Rechnung ' + r.inv.no + ' – ' + r.ev.name)}&body=${encodeURIComponent(body)}`;
-            showAlert('PDF heruntergeladen – bitte in der geöffneten E-Mail als Anhang einfügen und senden. Danach „versendet" abhaken.', 'info');
+
+            // Bevorzugt: Web-Share (öffnet die Mail-/Messenger-App des Geräts mit der PDF bereits als Anhang)
+            try {
+                const blob = r.d.output('blob');
+                const file = new File([blob], r.name, { type: 'application/pdf' });
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({ files: [file], title: subject, text: body });
+                    billFlag(kidId, 'sent', true);
+                    showAlert('Rechnung mit PDF-Anhang zum Versand geöffnet.', 'success');
+                    return;
+                }
+            } catch (err) { /* Nutzer hat Teilen abgebrochen oder nicht unterstützt -> Fallback */ }
+
+            // Fallback: PDF herunterladen + E-Mail-Entwurf öffnen (Anhang muss manuell angefügt werden)
+            r.d.save(r.name);
+            location.href = `mailto:${kid.email.trim()}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            showAlert('Dein Gerät unterstützt kein automatisches Anhängen: PDF wurde heruntergeladen – bitte in der geöffneten E-Mail manuell anhängen und senden. Danach „versendet" abhaken.', 'info');
         }
 
         function getActiveEvent() {
@@ -1905,6 +1944,7 @@
                 participatingTrailerIds: existingEv ? (existingEv.participatingTrailerIds || []) : [],
                 participatingCarIds: existingEv ? (existingEv.participatingCarIds || []) : [],
                 ribCoaches: existingEv ? (existingEv.ribCoaches || {}) : {},
+                ribTrailerAssignments: existingEv ? (existingEv.ribTrailerAssignments || {}) : {},
                 trailerAssignments: existingEv ? (existingEv.trailerAssignments || {}) : {},
                 carAssignments: existingEv ? (existingEv.carAssignments || {}) : {},
                 checklist: mergeStdChecklist(existingEv ? (existingEv.checklist || []) : [], document.getElementById('eventInputStdList').checked),
@@ -2113,7 +2153,31 @@
 
             trailerSummaryHtml += `</div></div>`;
 
-            container.innerHTML = carSummaryHtml + trailerSummaryHtml;
+            let ribSummaryHtml = `<div class="p-4 bg-slate-900/80 rounded-xl border border-slate-700">
+                <h4 class="font-bold text-xs uppercase text-slate-400 mb-3"><i class="fa-solid fa-ship text-sky-400 mr-1"></i> Begleitmotorboote (RIBs)</h4>
+                <div class="space-y-3">`;
+
+            const ribs = eventRibs(ev);
+            if (ribs.length === 0) {
+                ribSummaryHtml += `<div class="text-xs text-slate-500">Keine Begleitboote für dieses Event ausgewählt.</div>`;
+            }
+            ribs.forEach(rib => {
+                const trailerId = (ev.ribTrailerAssignments || {})[rib.id];
+                const trailer = trailerId ? appData.masterTrailers.find(t => t.id === trailerId) : null;
+                const coachName = ribCoachName(ev, rib.id);
+                ribSummaryHtml += `
+                    <div class="text-xs bg-slate-800/80 p-3 rounded-lg border border-slate-700">
+                        <div class="font-bold text-white">${esc(rib.name)}</div>
+                        <div class="mt-2 text-slate-300 space-y-1">
+                            <div><span class="text-slate-400">Zugewiesener Hänger:</span> ${trailer ? esc(trailer.name) : '<span class="text-slate-500">Keiner</span>'}</div>
+                            <div><span class="text-slate-400">Trainer:</span> ${coachName ? esc(coachName) : '<span class="text-slate-500">Kein Trainer zugewiesen</span>'}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            ribSummaryHtml += `</div></div>`;
+
+            container.innerHTML = carSummaryHtml + trailerSummaryHtml + ribSummaryHtml;
         }
 
         // 3. PARTICIPANTS SELECTOR
@@ -2175,11 +2239,25 @@
             const ids = ev.participatingTrailerIds || [];
             return appData.masterTrailers.filter(t => ids.includes(t.id));
         }
+        function eventRibs(ev) {
+            const ids = ev.participatingRibIds || [];
+            return appData.masterRibs.filter(r => ids.includes(r.id));
+        }
         function eventCars(ev) {
             const ids = ev.participatingCarIds || [];
             return appData.masterCars.filter(c => ids.includes(c.id));
         }
 
+        let showAllTrailersInParticipants = false;
+        function toggleShowAllTrailers() { showAllTrailersInParticipants = !showAllTrailersInParticipants; renderParticipantVehicles(getActiveEvent()); }
+        function trailerMatchesEventClass(trailerClass, eventClass) {
+            if (!eventClass || eventClass === 'Alle Classes') return true;
+            if (!trailerClass) return true;
+            if (trailerClass === eventClass) return true;
+            if (trailerClass === 'Universal' || trailerClass === 'Multi') return true;
+            if (trailerClass.indexOf('Opti') === 0 && eventClass.indexOf('Opti') === 0) return true;
+            return false;
+        }
         function renderParticipantVehicles(ev) {
             const build = (items, selIds, onToggle, sub, emptyText, color) => {
                 if (!items.length) return `<div class="col-span-full text-xs text-slate-400">${emptyText}</div>`;
@@ -2198,8 +2276,18 @@
             const tSel = ev.participatingTrailerIds || [], cSel = ev.participatingCarIds || [];
             document.getElementById('selectedTrailersCountBadge').textContent = `${tSel.length} ausgewählt`;
             document.getElementById('selectedCarsCountBadge').textContent = `${cSel.length} ausgewählt`;
-            document.getElementById('participantsTrailersGrid').innerHTML = build(appData.masterTrailers, tSel, 'toggleParticipantTrailer',
-                t => `${esc(t.levels)} Ebene(n) × ${esc(t.perLevel)} Plätze`, 'Noch keine Hänger angelegt (Stammdaten).', 'amber');
+
+            // Nur zur Bootsklasse des Events passende (genutzte) Hänger anzeigen; bereits ausgewählte Hänger bleiben immer sichtbar
+            const relevantTrailers = showAllTrailersInParticipants
+                ? appData.masterTrailers
+                : appData.masterTrailers.filter(t => trailerMatchesEventClass(t.boatClass, ev.boatClass) || tSel.includes(t.id));
+            const hiddenCount = appData.masterTrailers.length - relevantTrailers.length;
+            const note = document.getElementById('trailersFilterNote');
+            note.innerHTML = hiddenCount > 0
+                ? `${hiddenCount} Hänger anderer Bootsklassen ausgeblendet · <button type="button" onclick="toggleShowAllTrailers()" class="text-ocean-400 hover:underline font-semibold">alle anzeigen</button>`
+                : (showAllTrailersInParticipants && appData.masterTrailers.length ? `<button type="button" onclick="toggleShowAllTrailers()" class="text-ocean-400 hover:underline font-semibold">nur passende Hänger anzeigen</button>` : '');
+            document.getElementById('participantsTrailersGrid').innerHTML = build(relevantTrailers, tSel, 'toggleParticipantTrailer',
+                t => `${esc(t.levels)} Ebene(n) × ${esc(t.perLevel)} Plätze | ${esc(t.boatClass)}`, 'Keine passenden Hänger für die Bootsklasse dieses Events (Stammdaten prüfen).', 'amber');
             document.getElementById('participantsCarsGrid').innerHTML = build(appData.masterCars, cSel, 'toggleParticipantCar',
                 c => `${esc(c.driver)} | ${esc(c.seats)} Plätze`, 'Noch keine Autos eingetragen.', 'blue');
         }
@@ -2522,6 +2610,7 @@
                 }
 
                 let ahkBadge = car.hasAHK ? `<span class="text-[10px] bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded font-semibold">AHK ${car.maxTow?car.maxTow+'kg':''}</span>` : '';
+                const ownerBadge = car.ownerType === 'club' ? `<span class="text-[10px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-1.5 py-0.5 rounded font-semibold">Vereinsauto${car.roofRack ? ' + Dachträger' : ''}</span>` : `<span class="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded font-semibold">Elternauto</span>`;
 
                 carsGrid.innerHTML += `
                     <div class="bg-slate-800/50 p-5 rounded-2xl border border-slate-700/60 shadow-xl space-y-4 backdrop-blur-md">
@@ -2530,7 +2619,7 @@
                                 <h4 class="font-bold text-white text-sm">${esc(car.name)}</h4>
                                 <div class="text-xs text-slate-400 mt-0.5">Fahrer: <span class="text-slate-200 font-semibold">${esc(car.driver)}</span></div>
                             </div>
-                            ${ahkBadge}
+                            <span class="flex flex-col items-end gap-1">${ownerBadge}${ahkBadge}</span>
                         </div>
 
                         ${car.hasAHK ? `
@@ -2555,6 +2644,7 @@
             document.getElementById('carForm').reset();
             document.getElementById('carId').value = '';
             document.getElementById('largeTrailerOptionContainer').classList.add('hidden');
+            document.getElementById('carOwnerType').value = isCoach() ? 'club' : 'parent';
             document.getElementById('carModalTitle').textContent = 'Fahrzeug eintragen / bearbeiten';
 
             if (carId) {
@@ -2565,13 +2655,17 @@
                     document.getElementById('carDriver').value = c.driver;
                     document.getElementById('carSeats').value = c.seats;
                     document.getElementById('carChildClass').value = c.childClass || 'Keine bestimmte';
+                    document.getElementById('carOwnerType').value = c.ownerType || 'parent';
                     document.getElementById('carHasAHK').checked = !!c.hasAHK;
                     document.getElementById('carMaxTow').value = c.maxTow || '';
                     document.getElementById('carCanTowLargeTrailer').checked = !!c.canTowLargeTrailer;
+                    document.getElementById('carRoofRack').checked = !!c.roofRack;
                     toggleAHKOptions();
+                    toggleRoofRackOption();
                     document.getElementById('carModalTitle').textContent = 'Fahrzeug bearbeiten';
                 }
             }
+            toggleRoofRackOption();
             document.getElementById('carModal').classList.remove('hidden');
         }
 
@@ -2583,6 +2677,11 @@
             const hasAHK = document.getElementById('carHasAHK').checked;
             document.getElementById('largeTrailerOptionContainer').classList.toggle('hidden', !hasAHK);
         }
+        function toggleRoofRackOption() {
+            const isClub = document.getElementById('carOwnerType').value === 'club';
+            document.getElementById('roofRackOptionContainer').classList.toggle('hidden', !isClub);
+            if (!isClub) document.getElementById('carRoofRack').checked = false;
+        }
 
         function saveCar(e) {
             e.preventDefault();
@@ -2593,6 +2692,8 @@
                 driver: document.getElementById('carDriver').value,
                 seats: parseInt(document.getElementById('carSeats').value, 10),
                 childClass: document.getElementById('carChildClass').value,
+                ownerType: document.getElementById('carOwnerType').value,
+                roofRack: document.getElementById('carOwnerType').value === 'club' && document.getElementById('carRoofRack').checked,
                 hasAHK: document.getElementById('carHasAHK').checked,
                 maxTow: parseInt(document.getElementById('carMaxTow').value, 10) || 0,
                 canTowLargeTrailer: document.getElementById('carCanTowLargeTrailer').checked
@@ -2633,6 +2734,15 @@
                     `<option value="${esc(c.id)}" ${c.id === cur ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
                 const warn = (cur && used[cur] > 1) ? '<div class="text-[10px] text-amber-400"><i class="fa-solid fa-triangle-exclamation"></i> Dieser Trainer ist im Event auf mehreren Booten eingeplant.</div>' : '';
                 const noCoaches = appData.masterCoaches.length === 0 ? '<div class="text-[10px] text-slate-400">Noch keine Trainer angelegt (Stammdaten → Trainer-Datenbank).</div>' : '';
+                const trOpts = '<option value="">— kein Hänger zugewiesen —</option>' + eventTrailers(ev).map(t =>
+                    `<option value="${esc(t.id)}" ${t.id === ((ev.ribTrailerAssignments || {})[rib.id] || '') ? 'selected' : ''}>${esc(t.name)}</option>`).join('');
+                const noTrailers = eventTrailers(ev).length === 0 ? '<div class="text-[10px] text-slate-400">Noch keine Hänger für dieses Event ausgewählt (Team & Meldeliste).</div>' : '';
+                const trailerBlock = inEvent
+                    ? `<div class="pt-2 border-t border-slate-700/60 space-y-1">
+                            <label class="block text-[10px] uppercase font-bold text-slate-400">Zugewiesener Hänger</label>
+                            <select onchange="assignTrailerToRib('${rib.id}', this.value)" class="w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white">${trOpts}</select>
+                            ${noTrailers}
+                       </div>` : '';
                 const trainerBlock = inEvent
                     ? `<div class="pt-2 border-t border-slate-700/60 space-y-1">
                             <label class="block text-[10px] uppercase font-bold text-slate-400">Trainer im Event „${esc(ev.name)}“</label>
@@ -2650,9 +2760,17 @@
                             <div><span class="text-slate-400">Motorisierung:</span> ${esc(rib.motor)}</div>
                             <div><span class="text-slate-400">Tankkapazität:</span> ${esc(rib.fuel)}</div>
                         </div>
-                        ${trainerBlock}
+                        ${trailerBlock}${trainerBlock}
                     </div>`;
             }).join('');
+        }
+
+        function assignTrailerToRib(ribId, trailerId) {
+            if (!isCoach()) return;
+            const ev = getActiveEvent();
+            if (!ev.ribTrailerAssignments) ev.ribTrailerAssignments = {};
+            if (trailerId) ev.ribTrailerAssignments[ribId] = trailerId; else delete ev.ribTrailerAssignments[ribId];
+            saveData();
         }
 
         function assignCoachToRib(ribId, coachId) {
@@ -2669,9 +2787,21 @@
             saveData();
         }
 
-        function openRibModal() {
+        function openRibModal(ribId = null) {
             if (!isCoach()) return;
             document.getElementById('ribForm').reset();
+            document.getElementById('ribId').value = '';
+            document.getElementById('ribModalTitle').textContent = 'Begleitmotorboot (RIB) anlegen';
+            if (ribId) {
+                const r = appData.masterRibs.find(item => item.id === ribId);
+                if (r) {
+                    document.getElementById('ribId').value = r.id;
+                    document.getElementById('ribName').value = r.name;
+                    document.getElementById('ribMotor').value = r.motor;
+                    document.getElementById('ribFuel').value = r.fuel;
+                    document.getElementById('ribModalTitle').textContent = 'Begleitmotorboot (RIB) bearbeiten';
+                }
+            }
             document.getElementById('ribModal').classList.remove('hidden');
         }
 
@@ -2682,16 +2812,22 @@
         function saveRib(e) {
             e.preventDefault();
             if (!isCoach()) return;
+            const id = document.getElementById('ribId').value;
             const newRib = {
-                id: 'r_' + Date.now(),
+                id: id || 'r_' + Date.now(),
                 name: document.getElementById('ribName').value,
                 motor: document.getElementById('ribMotor').value,
                 fuel: document.getElementById('ribFuel').value
             };
-            appData.masterRibs.push(newRib);
+            if (id) {
+                const idx = appData.masterRibs.findIndex(r => r.id === id);
+                if (idx !== -1) appData.masterRibs[idx] = newRib;
+            } else {
+                appData.masterRibs.push(newRib);
+            }
             closeRibModal();
             saveData();
-            showAlert("Begleitmotorboot angelegt!", "success");
+            showAlert(id ? "Begleitmotorboot aktualisiert!" : "Begleitmotorboot angelegt!", "success");
         }
 
         // 6. CHECKLIST MODULE
@@ -2716,10 +2852,16 @@
                 let itemsHtml = '';
                 categories[cat].forEach(item => {
                     itemsHtml += `
-                        <label class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 cursor-pointer select-none">
-                            <span class="text-xs font-medium ${item.checked ? 'line-through text-slate-500' : 'text-slate-200'}">${esc(item.text)}</span>
-                            <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleCheckitem('${item.id}')" class="w-4 h-4 text-purple-600 rounded border-slate-700 bg-slate-900 focus:ring-purple-500">
-                        </label>
+                        <div class="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 select-none">
+                            <label class="flex items-center gap-2 flex-1 cursor-pointer min-w-0">
+                                <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleCheckitem('${item.id}')" class="w-4 h-4 shrink-0 text-purple-600 rounded border-slate-700 bg-slate-900 focus:ring-purple-500">
+                                <span class="text-xs font-medium truncate ${item.checked ? 'line-through text-slate-500' : 'text-slate-200'}">${esc(item.text)}</span>
+                            </label>
+                            <span class="admin-only flex items-center gap-2 shrink-0">
+                                <button onclick="openChecklistItemModal('${item.id}')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-pen"></i></button>
+                                <button onclick="deleteChecklistItem('${item.id}')" class="text-rose-400 hover:text-rose-300"><i class="fa-solid fa-trash"></i></button>
+                            </span>
+                        </div>
                     `;
                 });
 
@@ -2743,13 +2885,15 @@
             }
         }
 
-        function openChecklistItemModal() {
+        function openChecklistItemModal(itemId = null) {
             if (!isCoach()) return;
             document.getElementById('checklistItemForm').reset();
+            document.getElementById('checkItemId').value = '';
+            document.getElementById('checklistItemModalTitle').textContent = 'Packlisten-Position hinzufügen';
             const ev = getActiveEvent();
             const datalist = document.getElementById('existingCategories');
             datalist.innerHTML = '';
-            
+
             const cats = Array.from(new Set((ev.checklist || []).map(c => c.category)));
             cats.forEach(c => {
                 const opt = document.createElement('option');
@@ -2757,7 +2901,25 @@
                 datalist.appendChild(opt);
             });
 
+            if (itemId) {
+                const item = (ev.checklist || []).find(c => c.id === itemId);
+                if (item) {
+                    document.getElementById('checkItemId').value = item.id;
+                    document.getElementById('checkItemCategory').value = item.category;
+                    document.getElementById('checkItemText').value = item.text;
+                    document.getElementById('checklistItemModalTitle').textContent = 'Packlisten-Position bearbeiten';
+                }
+            }
+
             document.getElementById('checklistItemModal').classList.remove('hidden');
+        }
+        function deleteChecklistItem(itemId) {
+            if (!isCoach()) return;
+            const ev = getActiveEvent();
+            if (!confirm('Diese Packlisten-Position wirklich löschen?')) return;
+            ev.checklist = (ev.checklist || []).filter(c => c.id !== itemId);
+            saveData();
+            showAlert('Position gelöscht.', 'info');
         }
 
         function closeChecklistItemModal() {
@@ -2769,18 +2931,20 @@
             if (!isCoach()) return;
             const ev = getActiveEvent();
             if (!ev.checklist) ev.checklist = [];
+            const id = document.getElementById('checkItemId').value;
+            const category = document.getElementById('checkItemCategory').value;
+            const text = document.getElementById('checkItemText').value;
 
-            const newItem = {
-                id: 'ch_' + Date.now(),
-                category: document.getElementById('checkItemCategory').value,
-                text: document.getElementById('checkItemText').value,
-                checked: false
-            };
+            if (id) {
+                const item = ev.checklist.find(c => c.id === id);
+                if (item) { item.category = category; item.text = text; }
+            } else {
+                ev.checklist.push({ id: 'ch_' + Date.now(), category, text, checked: false });
+            }
 
-            ev.checklist.push(newItem);
             closeChecklistItemModal();
             saveData();
-            showAlert("Packlisten-Position hinzugefügt!", "success");
+            showAlert(id ? "Packlisten-Position aktualisiert!" : "Packlisten-Position hinzugefügt!", "success");
         }
 
         function resetChecklist() {
@@ -2839,10 +3003,12 @@
 
             appData.masterCars.forEach(c => {
                 const childBadge = c.childClass ? `<span class="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-1.5 py-0.5 rounded ml-2">Kind: ${esc(c.childClass)}</span>` : '';
+                const ownerBadge = c.ownerType === 'club' ? '<span class="text-[10px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-1.5 py-0.5 rounded ml-2">Vereinsauto</span>' : '<span class="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded ml-2">Elternauto</span>';
+                const roofBadge = c.roofRack ? '<span class="text-[10px] bg-slate-700 text-slate-200 px-1.5 py-0.5 rounded ml-2"><i class="fa-solid fa-box mr-0.5"></i>Dachträger</span>' : '';
                 carsList.innerHTML += `
                     <div class="flex items-center justify-between p-3 bg-slate-900/60 rounded-xl border border-slate-700/60 text-xs">
                         <div>
-                            <span class="font-bold text-white block">${esc(c.name)} (${esc(c.driver)}) ${childBadge}</span>
+                            <span class="font-bold text-white block">${esc(c.name)} (${esc(c.driver)}) ${ownerBadge}${roofBadge}${childBadge}</span>
                             <span class="text-slate-400">${c.seats} Plätze ${c.hasAHK ? '| AHK vorhanden' : ''}</span>
                         </div>
                         <div class="flex items-center gap-2">
@@ -2877,7 +3043,10 @@
                     <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-700/60 text-xs space-y-1">
                         <div class="flex items-center justify-between">
                             <span class="font-bold text-white">${esc(r.name)}</span>
-                            <button onclick="deleteRib('${r.id}')" class="text-rose-400 hover:text-rose-300"><i class="fa-solid fa-trash"></i></button>
+                            <span class="flex items-center gap-2">
+                                <button onclick="openRibModal('${r.id}')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-pen"></i></button>
+                                <button onclick="deleteRib('${r.id}')" class="text-rose-400 hover:text-rose-300"><i class="fa-solid fa-trash"></i></button>
+                            </span>
                         </div>
                         <div class="text-slate-400">${esc(r.motor) || '-'} | Tank: ${esc(r.fuel) || '-'}</div>
                     </div>
@@ -2902,6 +3071,7 @@
                     document.getElementById('kidSailNum').value = k.sailNum;
                     document.getElementById('kidBoatType').value = k.boatType;
                     document.getElementById('kidParent').value = k.parentName || '';
+                    document.getElementById('kidAddress').value = k.address || '';
                     document.getElementById('kidPhone').value = k.phone || '';
                     document.getElementById('kidEmail').value = k.email || '';
                     document.getElementById('kidModalTitle').textContent = 'Segler/in bearbeiten';
@@ -2927,6 +3097,7 @@
                 sailNum: document.getElementById('kidSailNum').value,
                 boatType: document.getElementById('kidBoatType').value,
                 parentName: document.getElementById('kidParent').value,
+                address: document.getElementById('kidAddress').value,
                 phone: document.getElementById('kidPhone').value,
                 email: document.getElementById('kidEmail').value
             };
@@ -2955,7 +3126,17 @@
         function openTrailerModal() {
             if (!isCoach()) return;
             document.getElementById('trailerForm').reset();
+            updateTrailerPerLevelOptions();
             document.getElementById('trailerModal').classList.remove('hidden');
+        }
+        function updateTrailerPerLevelOptions() {
+            const cls = document.getElementById('trailerBoatClass').value;
+            const max = cls.indexOf('Opti') === 0 ? 6 : 3;
+            const sel = document.getElementById('trailerPerLevel');
+            const cur = Math.min(parseInt(sel.value, 10) || 2, max);
+            let html = '';
+            for (let i = 1; i <= max; i++) html += `<option value="${i}" ${i === cur ? 'selected' : ''}>${i} Boot${i > 1 ? 'e' : ''}</option>`;
+            sel.innerHTML = html;
         }
 
         function closeTrailerModal() {
